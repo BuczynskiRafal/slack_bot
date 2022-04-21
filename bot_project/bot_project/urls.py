@@ -6,5 +6,5 @@ from django.conf import settings
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('bot/', include('bot_app.urls'))
+    path('', include('bot_app.urls'))
 ]

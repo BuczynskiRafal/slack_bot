@@ -134,38 +134,5 @@ def message_count():
     return Response(), 200
 
 
-def send_menu_in_message(channel, user):
-    if channel not in welcome_messages:
-        welcome_messages[channel] = {}
-
-    if user in welcome_messages[channel]:
-        return
-
-    welcome = WelcomeMessage(channel)
-    message = welcome.get_message()
-    response = client.chat_postMessage(**message)
-    welcome.timestamp = response['ts']
-
-    welcome_messages[channel][user] = welcome
-
-
-@app.route("/call", method=["POST"])
-def call():
-    """
-    Call the robot to show you what it can do. It should send private message with menu.
-    :return:
-    """
-    data = request.form
-    user_id = data.get("user_id")
-    channel_id = data.get("channel_id")
-    menu = ''
-
-    client.chat_postMessage(channel=channel_id, text=f"Menu: {menu}.")
-
-    send_welcome_message(f'@{user_id}', user_id)
-
-    return Response(), 200
-
-
 if __name__ == "__main__":
     app.run(debug=True)

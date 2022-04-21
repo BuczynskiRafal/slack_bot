@@ -1,10 +1,10 @@
 from django.urls import path
-from .views import call, event_hook
+from .views import slack_events, call_info
 
 
 app_name = 'bot_app'
 
 urlpatterns = [
-    path('call/', call, name='call'),
-    path('event/hook/', event_hook, name='event_hook'),
+    path('event/hook/', slack_events, name='slack_events'),
+    path('program-wyroznien', call_info, name='call_info'),
 ]

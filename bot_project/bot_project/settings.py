@@ -1,19 +1,20 @@
 import os
+import dotenv
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+dotenv_file = os.path.join(BASE_DIR, ".env")
+if os.path.isfile(dotenv_file):
+    dotenv.load_dotenv(dotenv_file)
+
 SECRET_KEY = os.environ.get("SECRET_KEY", default="KEY")
 
 
-ALLOWED_HOSTS = ['*']
-
-SLACK_TOKEN = os.environ.get("SLACK_TOKEN")
+SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
 SIGNING_SECRET = os.environ.get("SIGNING_SECRET")
-VERIFICATION_TOKEN = os.environ.get("VERIFICATION_TOKEN")
-OAUTH_ACCESS_TOKEN = os.environ.get("OAUTH_ACCESS_TOKEN")
-BOT_USER_ACCESS_TOKEN = os.environ.get("BOT_USER_ACCESS_TOKEN")
-CLIENT_ID = os.environ.get("CLIENT_ID")
-CLIENT_SECRET = os.environ.get("CLIENT_SECRET")
+SLACK_VERIFICATION_TOKEN = os.environ.get("SLACK_VERIFICATION_TOKEN")
+
+ALLOWED_HOSTS = ['*']
 
 DEBUG = True
 
@@ -101,3 +102,4 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 SHELL_PLUS_PRINT_SQL = True
+SHELL_PLUS = "ipython"
