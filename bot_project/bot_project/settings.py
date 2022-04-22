@@ -1,6 +1,7 @@
 import os
 import dotenv
 from pathlib import Path
+import slack_sdk
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 dotenv_file = os.path.join(BASE_DIR, ".env")
@@ -14,9 +15,11 @@ SLACK_BOT_TOKEN = os.environ.get("SLACK_BOT_TOKEN")
 SIGNING_SECRET = os.environ.get("SIGNING_SECRET")
 SLACK_VERIFICATION_TOKEN = os.environ.get("SLACK_VERIFICATION_TOKEN")
 
+CLIENT = slack_sdk.WebClient(token=SLACK_BOT_TOKEN)
+
 ALLOWED_HOSTS = ['*']
 
-DEBUG = True
+DEBUG = False
 
 INSTALLED_APPS = [
     'django.contrib.admin',

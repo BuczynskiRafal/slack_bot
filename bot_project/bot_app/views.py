@@ -1,53 +1,63 @@
 import json
 import string
 import slack_sdk
+from datetime import datetime, timedelta
+from typing import Dict
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 
+from .reminder_message import schedule_messages, SCHEDULED_MESSAGES
+from .scraping_users import save_users_to_db
 
-CLIENT = slack_sdk.WebClient(token=settings.SLACK_BOT_TOKEN)
+
+CLIENT = settings.CLIENT
+
+
 BOT_ID = CLIENT.api_call("auth.test")["user_id"]
 
 WORDS_SEARCHED = ["program", "wyróżnień", "wyroznien"]
 
-message_counts = {}
+
 info_channels = {}
 
 
 class InfoMessage:
-    with open('about_program_wyroznien', encoding='UTF8') as file:
+    """The class handles information about the award program."""
+
+    """Open file contain information about awards program."""
+    with open("about", encoding="UTF8") as file:
         text = file.read()
 
-    START_TEXT = {
-        'type': 'section',
-        'text': {
-            'type': 'mrkdwn',
-            'text': text
-        }
-    }
+    """Stores information about the award program. 
+    It is part of the message being sent."""
+    START_TEXT = {"type": "section", "text": {"type": "mrkdwn", "text": text}}
 
+    """Split text / message."""
     DIVIDER = {"type": "divider"}
 
-    def __init__(self, channel):
+    def __init__(self, channel) -> None:
         self.channel = channel
-        self.icon_emoji = ':robot_face:'
-        self.timestamp = ''
+        self.icon_emoji = ":robot_face:"  # set a bot avatar
+        self.timestamp = ""
         self.completed = False
 
-    def get_message(self):
+    def get_message(self) -> Dict:
+        """Prepare complete message.
+        @return: dict
+        """
         return {
-            'ts': self.timestamp,
-            'channel': self.channel,
-            'username': 'Program Wyróżnień - bot',
-            'icon_emoji': self.icon_emoji,
-            'blocks': [
+            "ts": self.timestamp,
+            "channel": self.channel,
+            "username": "Program Wyróżnień - bot",
+            "icon_emoji": self.icon_emoji,
+            "blocks": [
                 self.START_TEXT,
                 self.DIVIDER,
                 # self._get_reaction_task()
-            ]
+            ],
         }
 
     # def _get_reaction_task(self):
@@ -61,70 +71,59 @@ class InfoMessage:
 
 
 def send_info(channel, user):
-    """Send info about program wyróżnień"""
+    """Send info about awards program."""
     if channel not in info_channels:
         info_channels[channel] = {}
     if user in info_channels[channel]:
-        return 'abc'
+        return
+
     info = InfoMessage(channel)
     message = info.get_message()
     response = CLIENT.chat_postMessage(**message)
-    info.timestamp = response['ts']
+    info.timestamp = response["ts"]
     info_channels[channel][user] = info
 
 
 def check_if_searched_words(message):
     msg = message.lower()
-    msg = msg.translate(str.maketrans('', '', string.punctuation))
+    msg = msg.translate(str.maketrans("", "", string.punctuation))
     return any(word in msg for word in WORDS_SEARCHED)
 
 
-@slack_events_adapter.on('message')
+@slack_events_adapter.on("message")
 def message(payload):
-    event = payload.get('event', {})
-    channel_id = event.get('channel')
-    user_id = event.get('user')
-    text = event.get('text')
+    event = payload.get("event", {})
+    channel_id = event.get("channel")
+    user_id = event.get("user")
+    text = event.get("text")
 
     if user_id != BOT_ID:
         if check_if_searched_words(text.lower()):
-            text = 'Informacje o pragramie wyróżnień prześlę Ci na pw. Sprawdź swoją skrzynkę.'
-            ts = event.get('ts')
+            text = "Informacje o pragramie wyróżnień prześlę Ci na pw. Sprawdź swoją skrzynkę."
+            ts = event.get("ts")
             CLIENT.chat_postMessage(channel=channel_id, thread_ts=ts, text=text)
-            send_info(f'@{user_id}', user_id)
+            send_info(f"@{user_id}", user_id)
 
 
-
+@csrf_exempt
 def call_info(request):
-    data = request.POST
-    print(dir(data))
+    """Supports the slash method - '/program-distinguished'."""
+    if request.method == "POST":
+        decode_data = request.body.decode("utf-8")
 
-    # print(request)
-    # print(request.post('user'))
-    # print(request.POST.get('channel'))
-    # request.method = ['POST']
-    # data = request.POST
-    # user_id = data.get('user')
-    # channel_id = data.get('channel')
-    # text = 'Some text.'
-    # # CLIENT.users_list()
-    # # CLIENT.chat_postMessage(channel=channel_id, text=text)
-    # send_info(f'@{user_id}', user_id)
-    return HttpResponse(), 200
+        data = {}
+        params = [param for param in decode_data.split("&")]
+        for attributes in params:
+            item = attributes.split("=")
+            data[item[0]] = item[1]
 
-# def profile(request, pk):
-#     profile = Profile.objects.get(pk=pk)
-#     if request.method == "POST":
-#         current_user_profile = request.user.profile
-#         data = request.POST
-#         action = data.get("follow")
-#         if action == "follow":
-#             current_user_profile.follows.add(profile)
-#         elif action == "unfollow":
-#             current_user_profile.follows.remove(profile)
-#         current_user_profile.save()
-#     return render(request, "dwitter/profile.html", {"profile": profile})
+        user_id = data.get("user_id")
+        channel_id = data.get("channel_id")
+        text = "slash is working correctly"
 
+        CLIENT.chat_postMessage(channel=channel_id, text=text)
+        send_info(f"@{user_id}", user_id)
+        return HttpResponse(status=200)
 
 
 def render_json_response(request, data, status=None, support_jsonp=False):
@@ -135,14 +134,22 @@ def render_json_response(request, data, status=None, support_jsonp=False):
 
     if callback and support_jsonp:
         json_str = "%s(%s)" % (callback, json_str)
-        response = HttpResponse(json_str, content_type="application/javascript; charset=UTF-8", status=status)
+        response = HttpResponse(
+            json_str,
+            content_type="application/javascript; charset=UTF-8",
+            status=status,
+        )
     else:
-        response = HttpResponse(json_str, content_type="application/json; charset=UTF-8", status=status)
+        response = HttpResponse(
+            json_str, content_type="application/json; charset=UTF-8", status=status
+        )
     return response
 
 
 @csrf_exempt
-def slack_events(request, *args, **kwargs):  # cf. https://api.slack.com/events/url_verification
+def slack_events(
+    request, *args, **kwargs
+):  # cf. https://api.slack.com/events/url_verification
     # logging.info(request.method)
     if request.method == "GET":
         raise Http404("These are not the slackbots you're looking for.")
@@ -155,18 +162,18 @@ def slack_events(request, *args, **kwargs):  # cf. https://api.slack.com/events/
 
     # Echo the URL verification challenge code
     if "challenge" in event_data:
-        return render_json_response(request, {
-            "challenge": event_data["challenge"]
-        })
+        return render_json_response(request, {"challenge": event_data["challenge"]})
 
     # Parse the Event payload and emit the event to the event listener
     if "event" in event_data:
         # Verify the request token
         request_token = event_data["token"]
         if request_token != SLACK_VERIFICATION_TOKEN:
-            slack_events_adapter.emit('error', 'invalid verification token')
-            message = "Request contains invalid Slack verification token: %s\n" \
-                      "Slack adapter has: %s" % (request_token, SLACK_VERIFICATION_TOKEN)
+            slack_events_adapter.emit("error", "invalid verification token")
+            message = (
+                "Request contains invalid Slack verification token: %s\n"
+                "Slack adapter has: %s" % (request_token, SLACK_VERIFICATION_TOKEN)
+            )
             raise PermissionDenied(message)
 
         event_type = event_data["event"]["type"]
