@@ -132,5 +132,3 @@ def delete_user(slack_id: str) -> None:
     slack_user.delete()
 
 
-# create_users_from_slack()
-
