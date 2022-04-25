@@ -8,7 +8,7 @@ class SlackProfile(models.Model):
     title = models.TextField()
     phone = models.TextField()
     skype = models.TextField()
-    real_name = models.TextField()
+    real_name = models.TextField(unique=True)
     real_name_normalized = models.TextField()
     display_name = models.TextField()
     first_name = models.TextField()
@@ -21,7 +21,7 @@ class SlackProfile(models.Model):
 
 class SlackUser(models.Model):
     slack_id = models.TextField(unique=True, blank=True, null=True)
-    team_id = models.TextField(unique=True, blank=True, null=True)
+    team_id = models.TextField(blank=True, null=True)
     name = models.TextField(unique=True, blank=True, null=True)
     deleted = models.BooleanField(default=False)
     color = models.TextField(unique=False, blank=True, null=True)

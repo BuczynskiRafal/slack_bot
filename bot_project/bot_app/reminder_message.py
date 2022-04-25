@@ -10,6 +10,7 @@
 import slack_sdk
 from datetime import datetime, timedelta
 from django.conf import settings
+from .scraping_users import get_users
 
 
 CLIENT = settings.CLIENT
@@ -18,18 +19,16 @@ CLIENT = settings.CLIENT
 SCHEDULED_MESSAGES = [
     {
         "text": "First message",
-        "post_at": int((datetime.now() + timedelta(seconds=10)).timestamp()),
+        "post_at": int((datetime.now() + timedelta(seconds=15)).timestamp()),
         "channel": "C03C25AACLD",
     },
     {
         "text": "Second Message!",
-        "post_at": int((datetime.now() + timedelta(seconds=11)).timestamp()),
+        "post_at": int((datetime.now() + timedelta(seconds=16)).timestamp()),
         "channel": "C03C25AACLD",
     },
 ]
 
-"""Use orm to take users from db -- is incorrect at this moment"""
-users = {'rafal.buczynski': 'U03BKQMSU5D'}
 
 def schedule_messages(messages):
     ids = []
@@ -40,17 +39,20 @@ def schedule_messages(messages):
     return ids
 
 
+def send_reminder_in_pw(messages):
+    """Get all users from db"""
+    users = get_users()
 
-
-
-def send_reminder_in_pw(messages, users):
     """Open file contain information about awards program."""
-    users = users
     with open("pw_reminder", encoding="UTF8") as file:
         reminder_text = file.read()
 
-        for user in users.values():
-            for msg in messages:
-                response = CLIENT.chat_scheduleMessage(channel=user, text=reminder_text, post_at=msg["post_at"]).data
+        """Send message to all users in db."""
+        for user in users:
 
-# send_reminder_in_pw(messages=SCHEDULED_MESSAGES, users=users)
+            """Send scheduled messages."""
+            for msg in messages:
+                response = CLIENT.chat_scheduleMessage(channel=str(user), text=reminder_text, post_at=msg["post_at"]).data
+
+
+# send_reminder_in_pw(messages=SCHEDULED_MESSAGES)

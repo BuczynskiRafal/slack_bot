@@ -10,7 +10,7 @@ from django.core.exceptions import PermissionDenied
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 
 from .reminder_message import schedule_messages, SCHEDULED_MESSAGES
-from .scraping_users import save_users_to_db
+from .scraping_users import create_users_from_slack
 
 
 CLIENT = settings.CLIENT
