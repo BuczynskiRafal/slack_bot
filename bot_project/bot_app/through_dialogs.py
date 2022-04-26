@@ -1,7 +1,6 @@
 import json
 from typing import Dict
 from django.conf import settings
-from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -70,6 +69,50 @@ class DialogWidow:
         },
     ]
 
+    # MESSAGES = [message_team_up_to_win + message_act_to_deliver + message_disrupt_to_grow]
+
+    # messages = [
+    #     {
+    #         "type": "section",
+    #         "text": {"type": "mrkdwn", "text": "Team up to win."},
+    #         "accessory": {
+    #             "type": "users_select",
+    #             "placeholder": {
+    #                 "type": "plain_text",
+    #                 "text": "Select a user",
+    #                 "emoji": True,
+    #             },
+    #             "action_id": "users_select-action",
+    #         },
+    #     },
+    #     {
+    #         "type": "section",
+    #         "text": {"type": "mrkdwn", "text": "Act to deliver."},
+    #         "accessory": {
+    #             "type": "users_select",
+    #             "placeholder": {
+    #                 "type": "plain_text",
+    #                 "text": "Select a user",
+    #                 "emoji": True,
+    #             },
+    #             "action_id": "users_select-action",
+    #         },
+    #     },
+    #     {
+    #         "type": "section",
+    #         "text": {"type": "mrkdwn", "text": "Disrupt to grow."},
+    #         "accessory": {
+    #             "type": "users_select",
+    #             "placeholder": {
+    #                 "type": "plain_text",
+    #                 "text": "Select a user",
+    #                 "emoji": True,
+    #             },
+    #             "action_id": "users_select-action",
+    #         },
+    #     },
+    # ]
+
     def __init__(self, channel) -> None:
         self.channel = channel
         self.icon_emoji = ":robot_face:"
@@ -77,10 +120,11 @@ class DialogWidow:
         self.timestamp = ""
         self.callback_id = 'U03BKQMSU5D'
 
-    def get_message(self) -> Dict:
+    def get_message(self, message) -> Dict:
         """Prepare complete message.
         @return: dict
         """
+        self.message = message
         return {
             "ts": self.timestamp,
             "channel": self.channel,
@@ -90,12 +134,9 @@ class DialogWidow:
                 self.DIVIDER,
                 self.START_TEXT,
                 self.DIVIDER,
-                self.message_team_up_to_win,
+                self.message[0],
                 self.DIVIDER,
-                self.message_act_to_deliver,
-                self.DIVIDER,
-                self.messag,
-                self._get_reaction_task(),
+                # self._get_reaction_task(),
             ],
         }
 
@@ -121,7 +162,7 @@ def send_message(channel, user):
 
     dialog_window = DialogWidow(channel)
     message = dialog_window.get_message()
-    response = CLIENT.chat_postMessage(**message)
+    response = CLIENT.chat_postMessage(**message, text='message from class')
     dialog_window.timestamp = response['ts']
     voting_messages[channel][user] = message
 
@@ -142,6 +183,7 @@ def send_voting_form(request):
         channel_id = data.get('channel_id')
         text = 'working'
 
+
         CLIENT.chat_postMessage(channel=channel_id, text=text)
         send_message(f"{user_id}", user_id)
 
@@ -154,19 +196,14 @@ def interactive(request):
 
         voting_user = data.get('user')
         print(data)
-        print(data['actions'])
-        try:
-            category = data['message']['blocks']['text'].get('text')
-            print(category)
-        except Exception as  e:
-            category = 'l'
+        # print(data['actions'])
+        # try:
+        #     category = data['message']['blocks']['text'].get('text')
+        #     print(category)
+        # except Exception as  e:
+        #     category = 'l'
 
         for _ in data['message']:
             print(_)
 
-
-    response = {
-        'text': 'Hi Erik!',
-        }
-    return ''
 
