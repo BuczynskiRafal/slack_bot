@@ -45,18 +45,18 @@ class InfoMessage:
             "blocks": [
                 self.START_TEXT,
                 self.DIVIDER,
-                # self._get_reaction_task()
+                self._get_reaction_task()
             ],
         }
 
-    # def _get_reaction_task(self):
-    #     checkmark = ':white_check_mark:'
-    #     if not self.completed:
-    #         checkmark = ':white_large_square:'
-    #
-    #     text = f'{checkmark} *React to this message!*'
-    #
-    #     return {'type': 'section', 'text': {'type': 'mrkdwn', 'text': text}}
+    def _get_reaction_task(self):
+        checkmark = ':white_check_mark:'
+        if not self.completed:
+            checkmark = ':white_large_square:'
+
+        text = f'{checkmark} *React to this message!*'
+
+        return {'type': 'section', 'text': {'type': 'mrkdwn', 'text': text}}
 
 
 def send_info(channel, user):

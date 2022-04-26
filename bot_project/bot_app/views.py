@@ -12,7 +12,7 @@ from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 from .reminder_message import send_reminder_in_pw, SCHEDULED_MESSAGES
 from .scraping_users import create_users_from_slack
 from .event_message import check_if_searched_words, send_info
-
+from .through_dialogs import send_message
 
 CLIENT = settings.CLIENT
 
@@ -26,7 +26,7 @@ BOT_ID = CLIENT.api_call("auth.test")["user_id"]
 
 
 @slack_events_adapter.on("message")
-def message(payload: dict):
+def message(payload: json):
     """ Respond to the phrases "program", "wyróżnień", "wyroznien".
         The bot adds a comment informing that it is
         sending a message about the highlight program in a private message.
