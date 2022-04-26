@@ -69,7 +69,7 @@ class DialogWidow:
         },
     ]
 
-    # MESSAGES = [message_team_up_to_win + message_act_to_deliver + message_disrupt_to_grow]
+    MESSAGES = [message_team_up_to_win + message_act_to_deliver + message_disrupt_to_grow]
 
     # messages = [
     #     {
@@ -161,10 +161,11 @@ def send_message(channel, user):
         return
 
     dialog_window = DialogWidow(channel)
-    message = dialog_window.get_message()
-    response = CLIENT.chat_postMessage(**message, text='message from class')
-    dialog_window.timestamp = response['ts']
-    voting_messages[channel][user] = message
+    for i in dialog_window.MESSAGES:
+        message = dialog_window.get_message(message=i)
+        response = CLIENT.chat_postMessage(**message, text='message from class')
+        dialog_window.timestamp = response['ts']
+        voting_messages[channel][user] = message
 
 
 @csrf_exempt
@@ -182,7 +183,6 @@ def send_voting_form(request):
         user_id = data.get('user_id')
         channel_id = data.get('channel_id')
         text = 'working'
-
 
         CLIENT.chat_postMessage(channel=channel_id, text=text)
         send_message(f"{user_id}", user_id)
