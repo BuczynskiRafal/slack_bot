@@ -211,9 +211,33 @@ def interactive(request):
         return HttpResponse({"success": True}, status=200)
 
 
-def check_votes():
-    pass
+def check_votes(request):
+    """Check user votes.
+    @param request: json
+    @return:
+    """
+    if request.method == 'POST':
+        # data = json.loads(request.POST["payload"])
 
+        decode_data = request.body.decode("utf-8")
+
+        data = {}
+        params = [param for param in decode_data.split("&")]
+        for attributes in params:
+            item = attributes.split("=")
+            data[item[0]] = item[1]
+
+        user_id = data.get("user_id")
+        # channel_id = data.get("channel_id")
+        votes = VotingResults.objects.get(voting_user_id=user_id)
+        text = f"Cześć {get_user(user_id)}" \
+               f"W kategorii 'Team up to win' wybrano {get_user(votes.team_up_to_win)}" \
+               f"W kategorii 'Act to deliver' wybrano {get_user(votes.act_to_deliver)}" \
+               f"W kategorii 'Disrupt to grow' wybrano {get_user(votes.disrupt_to_grow)}"
+
+        CLIENT.chat_postMessage(channel=user_id, text=text)
+        # send_message(f"@{user_id}", user_id)
+        return HttpResponse(status=200)
 
 
 def render_json_response(request, data, status=None, support_jsonp=False):
