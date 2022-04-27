@@ -114,7 +114,8 @@ def get_users():
 def get_user(slack_id: str):
     """Get data about user saved in the database."""
     try:
-        user = SlackUser.objects.filter(slack_id=slack_id)
+        user = SlackUser.objects.get(slack_id=slack_id)
+        return user
     except Exception as error:
         print(error)
 
@@ -122,13 +123,13 @@ def get_user(slack_id: str):
 def update_users_data(user: [dict, json]):
     """Update the data of existing users."""
     if SlackUser.objects.filter(slack_id=user['id']).exists():
-        slack_user = SlackUser.objects.filter(slack_id=user['id']).update(**user)
+        slack_user = SlackUser.objects.get(slack_id=user['id']).update(**user)
         slack_user.save()
 
 
 def delete_user(slack_id: str) -> None:
     """Delete existing user."""
-    slack_user = SlackUser.objects.filter(slack_id=slack_id)
+    slack_user = SlackUser.objects.get(slack_id=slack_id)
     slack_user.delete()
 
 

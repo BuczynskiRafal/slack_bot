@@ -43,3 +43,14 @@ class SlackUser(models.Model):
 
     def __str__(self):
         return f"{self.slack_id}"
+
+
+class VotingResults(models.Model):
+    team_up_to_win = models.TextField(default=None)
+    act_to_deliver = models.TextField(default=None)
+    disrupt_to_grow = models.TextField(default=None)
+    voting_user = models.TextField(unique=True)
+    voting_user_id = models.TextField(unique=True)
+
+    def __str__(self):
+        return f""
