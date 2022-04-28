@@ -9,9 +9,9 @@ from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 
-from .reminder_message import send_reminder_in_pw, SCHEDULED_MESSAGES
-from .scraping_users import create_users_from_slack
-from .event_message import check_if_searched_words, send_info
+from .reminders import send_reminder_in_pw, SCHEDULED_MESSAGES
+from .scrap_users import create_users_from_slack
+from .events import check_if_searched_words, send_info
 from .voting import send_message
 
 CLIENT = settings.CLIENT

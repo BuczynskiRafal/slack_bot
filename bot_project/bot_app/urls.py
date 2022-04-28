@@ -1,6 +1,6 @@
 from django.urls import path
 from .views import slack_events, call_info
-from .voting import vote, interactive
+from .voting import vote, interactive, check_votes
 
 
 app_name = 'bot_app'
@@ -10,4 +10,5 @@ urlpatterns = [
     path('program-wyroznien', call_info, name='call_info'),
     path('vote', vote, name='vote'),
     path('interactive', interactive, name='interactive'),
+    path('check-votes', check_votes, name='check_votes'),
 ]

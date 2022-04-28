@@ -10,7 +10,7 @@
 import slack_sdk
 from datetime import datetime, timedelta
 from django.conf import settings
-from .scraping_users import get_users
+from .scrap_users import get_users
 
 
 CLIENT = settings.CLIENT
@@ -56,3 +56,5 @@ def send_reminder_in_pw(messages):
 
 
 # send_reminder_in_pw(messages=SCHEDULED_MESSAGES)
+
+"""Pierwszego dnia miesiąca podsumowanie głosów - wysłanie na główny kanał"""

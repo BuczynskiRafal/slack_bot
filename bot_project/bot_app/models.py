@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from django.db import models
@@ -45,12 +46,20 @@ class SlackUser(models.Model):
         return f"{self.slack_id}"
 
 
+# class VotingResults(models.Model):
+#     team_up_to_win = models.TextField(default=0, blank=True, null=True)
+#     act_to_deliver = models.TextField(default=0, blank=True, null=True)
+#     disrupt_to_grow = models.TextField(default=0, blank=True, null=True)
+#     voting_user = models.TextField(unique=True)
+#     voting_user_id = models.TextField(unique=True)
+#     ts = models.FloatField(null=True)
+
 class VotingResults(models.Model):
-    team_up_to_win = models.TextField(default=None)
-    act_to_deliver = models.TextField(default=None)
-    disrupt_to_grow = models.TextField(default=None)
-    voting_user = models.TextField(unique=True)
-    voting_user_id = models.TextField(unique=True)
+    team_up_to_win = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='team_up_to_win', null=True)
+    act_to_deliver = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='act_to_deliver', null=True)
+    disrupt_to_grow = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='disrupt_to_grow', null=True)
+    voting_user_id = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='voting_user_id', null=True)
+    ts = models.FloatField(null=True)
 
     def __str__(self):
         return f""

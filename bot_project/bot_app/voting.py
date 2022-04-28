@@ -1,3 +1,4 @@
+import datetime
 import json
 from typing import Dict
 from django.conf import settings
@@ -6,8 +7,8 @@ from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 
-from .scraping_users import get_user
-from .models import VotingResults
+from .scrap_users import get_user
+from .models import SlackUser, VotingResults
 
 
 CLIENT = settings.CLIENT
@@ -138,17 +139,22 @@ def send_message(channel, user):
     info_channels[channel][user] = message
 
 
+def prepare_data(request):
+    decode_data = request.body.decode("utf-8")
+
+    data = {}
+    params = [param for param in decode_data.split("&")]
+    for attributes in params:
+        item = attributes.split("=")
+        data[item[0]] = item[1]
+    return data
+
+
 @csrf_exempt
 def vote(request):
     """Supports the slash method - '/vote'."""
     if request.method == "POST":
-        decode_data = request.body.decode("utf-8")
-
-        data = {}
-        params = [param for param in decode_data.split("&")]
-        for attributes in params:
-            item = attributes.split("=")
-            data[item[0]] = item[1]
+        data = prepare_data(request=request)
 
         user_id = data.get("user_id")
         channel_id = data.get("channel_id")
@@ -163,6 +169,7 @@ def interactive(request):
     """Endpoint for receiving all interactivity requests from Slack"""
     if request.method == "POST":
         data = json.loads(request.POST["payload"])
+        print(data)
 
         voting_results = {}
         counter = 0
@@ -173,6 +180,7 @@ def interactive(request):
                     "block_name": idx["accessory"]["placeholder"]["text"],
                 }
                 counter += 1
+        print(voting_results)
 
         for counter, (block, values) in enumerate(data["state"]["values"].items()):
             if voting_results[counter]["block_id"] == block:
@@ -186,58 +194,65 @@ def interactive(request):
         voting_user = data["user"].get("username")
         voting_user_id = data["user"].get("id")
 
-        if VotingResults.objects.filter(voting_user_id=voting_user_id).exists():
-            voting_res = VotingResults.objects.get(voting_user_id=voting_user_id)
-            voting_res.team_up_to_win = voting_results[0]["selected_user"],
-            voting_res.act_to_deliver = voting_results[1]["selected_user"],
-            voting_res.disrupt_to_grow = voting_results[2]["selected_user"],
-            voting_res.voting_user = voting_user,
+        if VotingResults.objects.filter(voting_user_id=get_user(slack_id=voting_user_id)).exists():
+            voting_res = VotingResults.objects.get(voting_user_id=get_user(slack_id=voting_user_id))
+            voting_res.team_up_to_win = get_user(slack_id=voting_results[0]["selected_user"])
+            voting_res.act_to_deliver = get_user(slack_id=voting_results[1]["selected_user"])
+            voting_res.disrupt_to_grow = get_user(slack_id=voting_results[2]["selected_user"])
+            voting_res.ts = datetime.datetime.now().timestamp()
             voting_res.save()
         else:
+            print('else')
             voting_res = VotingResults.objects.create(
-                team_up_to_win=voting_results[0]["selected_user"],
-                act_to_deliver=voting_results[1]["selected_user"],
-                disrupt_to_grow=voting_results[2]["selected_user"],
-                voting_user=voting_user,
-                voting_user_id=voting_user_id,
+                team_up_to_win=get_user(slack_id=voting_results[0]["selected_user"]),
+                # team_up_to_win=voting_results[0]["selected_user"],
+                act_to_deliver=get_user(slack_id=voting_results[1]["selected_user"]),
+                # act_to_deliver=voting_results[1]["selected_user"],
+                disrupt_to_grow=get_user(slack_id=voting_results[2]["selected_user"]),
+                # disrupt_to_grow=voting_results[2]["selected_user"],
+                # voting_user=voting_user,
+                voting_user_id=get_user(slack_id=voting_user_id),
+                # voting_user_id=voting_user_id,
+                ts=datetime.datetime.now().timestamp()
             )
             voting_res.save()
 
-        text = ""
+        calling_user = get_user(voting_user_id).name.split('.')[0].capitalize()
+        text = f"Cześć {calling_user}.\n"
         for values in voting_results.values():
             t = f"Wybrano użytkownika '{values['selected_user_name']}' w kategorii '{values['block_name']}'.\n"
             text += t
         CLIENT.chat_postMessage(channel=voting_user_id, text=text)
         return HttpResponse({"success": True}, status=200)
 
+"""Dodanie timestamp aby obsłużyć dodawanie głosów w poszczególnych miesiącahc."""
+"""Archiwizowanie tabeli z wynikami w odrębnej tabeli i zerowanie głównej"""
 
+
+@csrf_exempt
 def check_votes(request):
     """Check user votes.
     @param request: json
     @return:
     """
     if request.method == 'POST':
-        # data = json.loads(request.POST["payload"])
-
-        decode_data = request.body.decode("utf-8")
-
-        data = {}
-        params = [param for param in decode_data.split("&")]
-        for attributes in params:
-            item = attributes.split("=")
-            data[item[0]] = item[1]
+        data = prepare_data(request=request)
 
         user_id = data.get("user_id")
-        # channel_id = data.get("channel_id")
         votes = VotingResults.objects.get(voting_user_id=user_id)
-        text = f"Cześć {get_user(user_id)}" \
-               f"W kategorii 'Team up to win' wybrano {get_user(votes.team_up_to_win)}" \
-               f"W kategorii 'Act to deliver' wybrano {get_user(votes.act_to_deliver)}" \
-               f"W kategorii 'Disrupt to grow' wybrano {get_user(votes.disrupt_to_grow)}"
+        calling_user = get_user(user_id).name.split('.')[0].capitalize()
+        text = f"Cześć {calling_user}.\n" \
+               f"W kategorii 'Team up to win' wybrano {get_user(votes.team_up_to_win).name}.\n" \
+               f"W kategorii 'Act to deliver' wybrano {get_user(votes.act_to_deliver).name}.\n" \
+               f"W kategorii 'Disrupt to grow' wybrano {get_user(votes.disrupt_to_grow).name}.\n"
 
         CLIENT.chat_postMessage(channel=user_id, text=text)
-        # send_message(f"@{user_id}", user_id)
         return HttpResponse(status=200)
+
+
+def archive_results():
+    """Zarchiwizuj wyniki i wyczyść bazę danych."""
+    pass
 
 
 def render_json_response(request, data, status=None, support_jsonp=False):
