@@ -46,14 +46,6 @@ class SlackUser(models.Model):
         return f"{self.slack_id}"
 
 
-# class VotingResults(models.Model):
-#     team_up_to_win = models.TextField(default=0, blank=True, null=True)
-#     act_to_deliver = models.TextField(default=0, blank=True, null=True)
-#     disrupt_to_grow = models.TextField(default=0, blank=True, null=True)
-#     voting_user = models.TextField(unique=True)
-#     voting_user_id = models.TextField(unique=True)
-#     ts = models.FloatField(null=True)
-
 class VotingResults(models.Model):
     team_up_to_win = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='team_up_to_win', null=True)
     act_to_deliver = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='act_to_deliver', null=True)

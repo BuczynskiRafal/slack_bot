@@ -169,7 +169,6 @@ def interactive(request):
     """Endpoint for receiving all interactivity requests from Slack"""
     if request.method == "POST":
         data = json.loads(request.POST["payload"])
-        print(data)
 
         voting_results = {}
         counter = 0
@@ -180,52 +179,97 @@ def interactive(request):
                     "block_name": idx["accessory"]["placeholder"]["text"],
                 }
                 counter += 1
-        print(voting_results)
 
         for counter, (block, values) in enumerate(data["state"]["values"].items()):
             if voting_results[counter]["block_id"] == block:
-                voting_results[counter]["selected_user"] = values[
-                    "users_select-action"
-                ]["selected_user"]
-                voting_results[counter]["selected_user_name"] = get_user(
-                    slack_id=voting_results[counter]["selected_user"]
-                ).name
+                try:
+                    voting_results[counter]["selected_user"] = values[
+                        "users_select-action"
+                    ]["selected_user"]
+                    voting_results[counter]["selected_user_name"] = get_user(
+                        slack_id=voting_results[counter]["selected_user"]
+                    ).name
+                except Exception as e:
+                    voting_results[counter]["selected_user_name"] = None
+                    print(e)
 
         voting_user = data["user"].get("username")
         voting_user_id = data["user"].get("id")
 
-        if VotingResults.objects.filter(voting_user_id=get_user(slack_id=voting_user_id)).exists():
-            voting_res = VotingResults.objects.get(voting_user_id=get_user(slack_id=voting_user_id))
-            voting_res.team_up_to_win = get_user(slack_id=voting_results[0]["selected_user"])
-            voting_res.act_to_deliver = get_user(slack_id=voting_results[1]["selected_user"])
-            voting_res.disrupt_to_grow = get_user(slack_id=voting_results[2]["selected_user"])
-            voting_res.ts = datetime.datetime.now().timestamp()
-            voting_res.save()
-        else:
-            print('else')
+        """Save votes to db."""
+        if not VotingResults.objects.filter(
+            voting_user_id=get_user(slack_id=voting_user_id)
+        ).exists():
             voting_res = VotingResults.objects.create(
-                team_up_to_win=get_user(slack_id=voting_results[0]["selected_user"]),
-                # team_up_to_win=voting_results[0]["selected_user"],
-                act_to_deliver=get_user(slack_id=voting_results[1]["selected_user"]),
-                # act_to_deliver=voting_results[1]["selected_user"],
-                disrupt_to_grow=get_user(slack_id=voting_results[2]["selected_user"]),
-                # disrupt_to_grow=voting_results[2]["selected_user"],
-                # voting_user=voting_user,
                 voting_user_id=get_user(slack_id=voting_user_id),
-                # voting_user_id=voting_user_id,
-                ts=datetime.datetime.now().timestamp()
+                ts=datetime.datetime.now().timestamp(),
             )
             voting_res.save()
+        if VotingResults.objects.filter(
+            voting_user_id=get_user(slack_id=voting_user_id)
+        ).exists():
+            voting_res = VotingResults.objects.get(
+                voting_user_id=get_user(slack_id=voting_user_id)
+            )
+            try:
+                voting_res.team_up_to_win = get_user(
+                    slack_id=voting_results[0]["selected_user"]
+                )
+            except Exception as e:
+                print(e)
+            try:
+                voting_res.act_to_deliver = get_user(
+                    slack_id=voting_results[1]["selected_user"]
+                )
+            except Exception as e:
+                print(e)
+            try:
+                voting_res.disrupt_to_grow = get_user(
+                    slack_id=voting_results[2]["selected_user"]
+                )
+            except Exception as e:
+                print(e)
+            voting_res.ts = datetime.datetime.now().timestamp()
+            voting_res.save()
 
-        calling_user = get_user(voting_user_id).name.split('.')[0].capitalize()
+        calling_user = get_user(voting_user_id).name.split(".")[0].capitalize()
+
         text = f"Cześć {calling_user}.\n"
         for values in voting_results.values():
-            t = f"Wybrano użytkownika '{values['selected_user_name']}' w kategorii '{values['block_name']}'.\n"
-            text += t
+            if values['selected_user_name']:
+                t = f"w kategorii '{values['block_name']}' wybrano użytkownika '{values['selected_user_name']}'.\n"
+                text += t
+            else:
+                t = f"W kategorii {values['block_name']} nie wybrano nikogo.\n"
+                text += t
+
         CLIENT.chat_postMessage(channel=voting_user_id, text=text)
         return HttpResponse({"success": True}, status=200)
 
-"""Dodanie timestamp aby obsłużyć dodawanie głosów w poszczególnych miesiącahc."""
+
+def create_text(voting_user_id):
+
+    voting_results = VotingResults.objects.get(voting_user_id=get_user(slack_id=voting_user_id))
+
+    voting_user_name = get_user(voting_user_id).name.split(".")[0].capitalize()
+    categories = ['team_up_to_win', 'act_to_deliver', 'disrupt_to_grow']
+    text = f"Cześć {voting_user_name}.\n"
+    print(voting_results)
+    for attrs in categories:
+        if voting_results.attrs:
+            text += f"W kategorii '{attrs}' wybrano użytkownika '{voting_results.attrs.name}'.\n"
+        else:
+            text = f"W kategorii {attrs} nie wybrano nikogo.\n"
+
+
+    # text = (
+    #     f"Cześć {voting_user_name}.\n"
+    #     f"W kategorii 'Team up to win' wybrano {voting_results.team_up_to_win.name}.\n"
+    #     f"W kategorii 'Act to deliver' wybrano {voting_results.act_to_deliver.name}.\n"
+    #     f"W kategorii 'Disrupt to grow' wybrano {voting_results.disrupt_to_grow.name}.\n"
+    # )
+    return text
+
 """Archiwizowanie tabeli z wynikami w odrębnej tabeli i zerowanie głównej"""
 
 
@@ -235,18 +279,13 @@ def check_votes(request):
     @param request: json
     @return:
     """
-    if request.method == 'POST':
+    if request.method == "POST":
         data = prepare_data(request=request)
 
-        user_id = data.get("user_id")
-        votes = VotingResults.objects.get(voting_user_id=user_id)
-        calling_user = get_user(user_id).name.split('.')[0].capitalize()
-        text = f"Cześć {calling_user}.\n" \
-               f"W kategorii 'Team up to win' wybrano {get_user(votes.team_up_to_win).name}.\n" \
-               f"W kategorii 'Act to deliver' wybrano {get_user(votes.act_to_deliver).name}.\n" \
-               f"W kategorii 'Disrupt to grow' wybrano {get_user(votes.disrupt_to_grow).name}.\n"
+        voting_user_id = data.get("user_id")
+        text = create_text(voting_user_id=voting_user_id)
 
-        CLIENT.chat_postMessage(channel=user_id, text=text)
+        CLIENT.chat_postMessage(channel=voting_user_id, text=text)
         return HttpResponse(status=200)
 
 
@@ -311,4 +350,3 @@ def slack_events(
 
     # default case
     return HttpResponse("")
-
