@@ -1,8 +1,4 @@
-import datetime
-import uuid
-
 from django.db import models
-from django.utils import timezone
 
 
 class SlackProfile(models.Model):
@@ -40,17 +36,27 @@ class SlackUser(models.Model):
     updated = models.SmallIntegerField(default=0)
     is_email_confirmed = models.BooleanField(default=False)
     who_can_share_contact_card = models.TextField(unique=False, blank=True, null=True)
-    profile = models.ForeignKey(SlackProfile, on_delete=models.CASCADE, related_name="slack_profile")
+    profile = models.OneToOneField(
+        SlackProfile, on_delete=models.CASCADE, related_name="slack_profile"
+    )
 
     def __str__(self):
         return f"{self.slack_id}"
 
 
 class AbstractVotingResults(models.Model):
-    team_up_to_win = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, null=True)
-    act_to_deliver = models.OneToOneField(SlackUser, on_delete=models.RESTRICT,  null=True)
-    disrupt_to_grow = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, null=True)
-    voting_user_id = models.OneToOneField(SlackUser, on_delete=models.RESTRICT,  null=True)
+    team_up_to_win = models.OneToOneField(
+        SlackUser, on_delete=models.RESTRICT, null=True
+    )
+    act_to_deliver = models.OneToOneField(
+        SlackUser, on_delete=models.RESTRICT, null=True
+    )
+    disrupt_to_grow = models.OneToOneField(
+        SlackUser, on_delete=models.RESTRICT, null=True
+    )
+    voting_user_id = models.OneToOneField(
+        SlackUser, on_delete=models.RESTRICT, null=True
+    )
     ts = models.FloatField(null=True)
 
     class Meta:
@@ -58,14 +64,18 @@ class AbstractVotingResults(models.Model):
 
 
 class VotingResults(AbstractVotingResults):
-    team_up_to_win = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='team_up_to_win',
-                                          null=True)
-    act_to_deliver = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='act_to_deliver',
-                                          null=True)
-    disrupt_to_grow = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='disrupt_to_grow',
-                                           null=True)
-    voting_user_id = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='voting_user_id',
-                                          null=True)
+    team_up_to_win = models.OneToOneField(
+        SlackUser, on_delete=models.RESTRICT, related_name="team_up_to_win", null=True
+    )
+    act_to_deliver = models.OneToOneField(
+        SlackUser, on_delete=models.RESTRICT, related_name="act_to_deliver", null=True
+    )
+    disrupt_to_grow = models.OneToOneField(
+        SlackUser, on_delete=models.RESTRICT, related_name="disrupt_to_grow", null=True
+    )
+    voting_user_id = models.OneToOneField(
+        SlackUser, on_delete=models.RESTRICT, related_name="voting_user_id", null=True
+    )
     ts = models.FloatField(null=True)
 
     def __str__(self):
@@ -73,15 +83,35 @@ class VotingResults(AbstractVotingResults):
 
 
 class ArchiveVotingResults(AbstractVotingResults):
-    team_up_to_win = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='archive_team_up_to_win',
-                                          null=True)
-    act_to_deliver = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='archive_act_to_deliver',
-                                          null=True)
-    disrupt_to_grow = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='archive_disrupt_to_grow',
-                                           null=True)
-    voting_user_id = models.OneToOneField(SlackUser, on_delete=models.RESTRICT, related_name='archive_voting_user_id',
-                                          null=True)
+    team_up_to_win = models.ForeignKey(
+        SlackUser,
+        on_delete=models.RESTRICT,
+        related_name="archive_team_up_to_win",
+        null=True,
+        unique=False,
+    )
+    act_to_deliver = models.ForeignKey(
+        SlackUser,
+        on_delete=models.RESTRICT,
+        related_name="archive_act_to_deliver",
+        null=True,
+        unique=False,
+    )
+    disrupt_to_grow = models.ForeignKey(
+        SlackUser,
+        on_delete=models.RESTRICT,
+        related_name="archive_disrupt_to_grow",
+        null=True,
+        unique=False,
+    )
+    voting_user_id = models.ForeignKey(
+        SlackUser,
+        on_delete=models.RESTRICT,
+        related_name="archive_voting_user_id",
+        null=True,
+        unique=False,
+    )
     ts = models.FloatField(null=True)
 
     def __str__(self):
-        return f"{self.__class__.__name__}."
+        return f"Class: {self.__class__.__name__}, user: {self.voting_user_id}."

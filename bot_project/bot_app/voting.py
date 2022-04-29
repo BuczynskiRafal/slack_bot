@@ -1,12 +1,15 @@
+import calendar
 import datetime
 import json
+import time
 from typing import Dict
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
-from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
+from django.db.models import Count
 
+from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 from .scrap_users import get_user
 from .models import SlackUser, VotingResults, ArchiveVotingResults
 
@@ -24,7 +27,7 @@ class DialogWidow:
         "type": "header",
         "text": {
             "type": "plain_text",
-            "text": ":mag: Search for the user you want to vote for.",
+            "text": ":mag: Search for the user you want to vote for in fallowing category.",
             "emoji": True,
         },
     }
@@ -32,55 +35,253 @@ class DialogWidow:
     """Split text / message."""
     DIVIDER = {"type": "divider"}
 
+    # messages = [
+    #     {
+    #         "type": "section",
+    #         "text": {
+    #             "type": "mrkdwn",
+    #             "text": "Select user who should receive points in the category Team up to win.",
+    #         },
+    #         "accessory": {
+    #             "type": "users_select",
+    #             "placeholder": {
+    #                 "type": "plain_text",
+    #                 "text": "Team up to win",
+    #                 "emoji": True,
+    #             },
+    #             "action_id": "users_select-action",
+    #         },
+    #     },
+    #     {
+    #         "type": "section",
+    #         "text": {
+    #             "type": "mrkdwn",
+    #             "text": "Select user who should receive points in the category Act to deliver.",
+    #         },
+    #         "accessory": {
+    #             "type": "users_select",
+    #             "placeholder": {
+    #                 "type": "plain_text",
+    #                 "text": "Act to deliver",
+    #                 "emoji": True,
+    #             },
+    #             "action_id": "users_select-action",
+    #         },
+    #     },
+    #     {
+    #         "type": "section",
+    #         "text": {
+    #             "type": "mrkdwn",
+    #             "text": "Select user who should receive points in the category Disrupt to grow.",
+    #         },
+    #         "accessory": {
+    #             "type": "users_select",
+    #             "placeholder": {
+    #                 "type": "plain_text",
+    #                 "text": "Disrupt to grow",
+    #                 "emoji": True,
+    #             },
+    #             "action_id": "users_select-action",
+    #         },
+    #     },
+    # ]
+
     messages = [
         {
             "type": "section",
             "text": {
-                "type": "mrkdwn",
-                "text": "Select user who should receive points in the category Team up to win.",
-            },
-            "accessory": {
-                "type": "users_select",
-                "placeholder": {
-                    "type": "plain_text",
-                    "text": "Team up to win",
-                    "emoji": True,
+                "type": "plain_text",
+                "text": "Team up to win.",
+                "emoji": True
+            }
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a user",
+                        "emoji": True
+                    },
+                    "action_id": "actionId-0"
                 },
-                "action_id": "users_select-action",
-            },
+                {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Choose number of points",
+                        "emoji": True
+                    },
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "0",
+                                "emoji": True
+                            },
+                            "value": "value-0"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "1",
+                                "emoji": True
+                            },
+                            "value": "value-1"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "2",
+                                "emoji": True
+                            },
+                            "value": "value-2"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "3",
+                                "emoji": True
+                            },
+                            "value": "value-3"
+                        }
+                    ],
+                    "action_id": "actionId-1"
+                }
+            ]
         },
         {
             "type": "section",
             "text": {
-                "type": "mrkdwn",
-                "text": "Select user who should receive points in the category Act to deliver.",
-            },
-            "accessory": {
-                "type": "users_select",
-                "placeholder": {
-                    "type": "plain_text",
-                    "text": "Act to deliver",
-                    "emoji": True,
+                "type": "plain_text",
+                "text": "Act to deliver.",
+                "emoji": True
+            }
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a user",
+                        "emoji": True
+                    },
+                    "action_id": "actionId-0"
                 },
-                "action_id": "users_select-action",
-            },
+                {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Choose number of points",
+                        "emoji": True
+                    },
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "0",
+                                "emoji": True
+                            },
+                            "value": "value-0"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "1",
+                                "emoji": True
+                            },
+                            "value": "value-1"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "2",
+                                "emoji": True
+                            },
+                            "value": "value-2"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "3",
+                                "emoji": True
+                            },
+                            "value": "value-3"
+                        }
+                    ],
+                    "action_id": "actionId-1"
+                }
+            ]
         },
         {
             "type": "section",
             "text": {
-                "type": "mrkdwn",
-                "text": "Select user who should receive points in the category Disrupt to grow.",
-            },
-            "accessory": {
-                "type": "users_select",
-                "placeholder": {
-                    "type": "plain_text",
-                    "text": "Disrupt to grow",
-                    "emoji": True,
-                },
-                "action_id": "users_select-action",
-            },
+                "type": "plain_text",
+                "text": "Disrupt to grow.",
+                "emoji": True
+            }
         },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a user",
+                        "emoji": True
+                    },
+                    "action_id": "actionId-0"
+                },
+                {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Choose number of points",
+                        "emoji": True
+                    },
+                    "options": [
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "0",
+                                "emoji": True
+                            },
+                            "value": "value-0"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "1",
+                                "emoji": True
+                            },
+                            "value": "value-1"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "2",
+                                "emoji": True
+                            },
+                            "value": "value-2"
+                        },
+                        {
+                            "text": {
+                                "type": "plain_text",
+                                "text": "3",
+                                "emoji": True
+                            },
+                            "value": "value-3"
+                        }
+                    ],
+                    "action_id": "actionId-1"
+                }
+            ]
+        }
     ]
 
     def __init__(self, channel) -> None:
@@ -104,10 +305,14 @@ class DialogWidow:
                 self.START_TEXT,
                 self.DIVIDER,
                 self.messages[0],
-                self.DIVIDER,
                 self.messages[1],
                 self.DIVIDER,
                 self.messages[2],
+                self.messages[3],
+                self.DIVIDER,
+                self.messages[4],
+                self.messages[5],
+                self.DIVIDER,
                 # self._get_reaction_task(),
             ],
         }
@@ -292,15 +497,57 @@ def archive_results():
     """Archive the results and drop the score table once a month."""
     data = VotingResults.objects.all()
     for obj in data:
-        print(dir(obj))
-        archive_data = ArchiveVotingResults()
-        for field in data.fields:
-            setattr(archive_data, field.name, getattr(obj.field.name))
+        try:
+            archive_data = ArchiveVotingResults()
+            for field in obj._meta.fields:
+                setattr(archive_data, field.name, getattr(obj, field.name))
             archive_data.save()
             obj.delete()
+        except Exception as e:
+            print(e)
     return HttpResponse(status=200)
 
-# archive_results()
+
+def send_reminder():
+    pass
+
+
+# def winners():
+#     """Check the winners of award program."""
+#     winner_team_up_to_win = VotingResults.objects.values('team_up_to_win').annotate(count=Count('team_up_to_win')).order_by('-count')
+#     winner_act_to_deliver = VotingResults.objects.values('act_to_deliver').annotate(count=Count('act_to_deliver')).order_by('-count')
+#     winner_disrupt_to_grow = VotingResults.objects.values('disrupt_to_grow').annotate(count=Count('disrupt_to_grow')).order_by('-count')
+#
+#
+#
+#     # text = f"Wyniki głosowania w programie wyróżnień w miesiący " \
+#     #        f"W kategorii 'Team up to win' wygrywa {get_user(slack_id=winner_team_up_to_win)}, liczba głosów {winner_team_up_to_win['count']}.\n" \
+#     #        f"W kategorii 'Act to deliver' wygrywa {get_user(slack_id=winner_act_to_deliver)}, liczba głosów {winner_act_to_deliver['count']}.\n" \
+#     #        f"W kategorii 'Disrupt to grow' wygrywa {get_user(slack_id=winner_disrupt_to_grow)}, liczba głosów {winner_disrupt_to_grow['count']}.\n"
+#
+#     current_month = datetime.datetime.now().month
+#     print(current_month)
+#     # CLIENT.chat_postMessage(channel=voting_user_id, text=text)
+#     return HttpResponse(status=200)
+#
+# winners()
+
+
+def run_once_a_month():
+    """Run the following method once a month.
+        archive_results() -> Archive voting results.
+
+    @rtype: object
+    """
+    while True:
+        today = datetime.datetime.today()
+        print(today)
+        if today.date() == calendar.monthrange(today.year, today.month):
+            archive_results()
+        time.sleep(28800)
+
+
+# run_once_a_month()
 
 
 def render_json_response(request, data, status=None, support_jsonp=False):
