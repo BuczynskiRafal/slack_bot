@@ -8,7 +8,7 @@ from django.core.exceptions import PermissionDenied
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 
 from .scrap_users import get_user
-from .models import SlackUser, VotingResults
+from .models import SlackUser, VotingResults, ArchiveVotingResults
 
 
 CLIENT = settings.CLIENT
@@ -150,6 +150,28 @@ def prepare_data(request):
     return data
 
 
+def create_text(voting_user_id: str) -> str:
+    """Create a message containing information on how the user voted.
+    @return: str :
+    """
+    voting_results = VotingResults.objects.get(
+        voting_user_id=get_user(slack_id=voting_user_id)
+    )
+
+    text = f"Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.\n"
+    attributes = [
+        (voting_results.team_up_to_win, "Team up to win"),
+        (voting_results.act_to_deliver, "Act to deliver"),
+        (voting_results.disrupt_to_grow, "Disrupt to grow"),
+    ]
+    for attr, category in attributes:
+        if attr:
+            text += f"W kategorii '{category}' wybrano użytkownika '{attr.name}'.\n"
+        else:
+            text += f"W kategorii '{category}' nie wybrano nikogo.\n"
+    return text
+
+
 @csrf_exempt
 def vote(request):
     """Supports the slash method - '/vote'."""
@@ -166,9 +188,10 @@ def vote(request):
 
 @csrf_exempt
 def interactive(request):
-    """Endpoint for receiving all interactivity requests from Slack"""
+    """Endpoint for receiving interactivity requests from Slack"""
     if request.method == "POST":
         data = json.loads(request.POST["payload"])
+        voting_user_id = data["user"].get("id")
 
         voting_results = {}
         counter = 0
@@ -193,24 +216,16 @@ def interactive(request):
                     voting_results[counter]["selected_user_name"] = None
                     print(e)
 
-        voting_user = data["user"].get("username")
-        voting_user_id = data["user"].get("id")
-
+        voting_user = get_user(slack_id=voting_user_id)
         """Save votes to db."""
-        if not VotingResults.objects.filter(
-            voting_user_id=get_user(slack_id=voting_user_id)
-        ).exists():
+        if not VotingResults.objects.filter(voting_user_id=voting_user).exists():
             voting_res = VotingResults.objects.create(
-                voting_user_id=get_user(slack_id=voting_user_id),
+                voting_user_id=voting_user,
                 ts=datetime.datetime.now().timestamp(),
             )
             voting_res.save()
-        if VotingResults.objects.filter(
-            voting_user_id=get_user(slack_id=voting_user_id)
-        ).exists():
-            voting_res = VotingResults.objects.get(
-                voting_user_id=get_user(slack_id=voting_user_id)
-            )
+        if VotingResults.objects.filter(voting_user_id=voting_user).exists():
+            voting_res = VotingResults.objects.get(voting_user_id=voting_user)
             try:
                 voting_res.team_up_to_win = get_user(
                     slack_id=voting_results[0]["selected_user"]
@@ -232,51 +247,15 @@ def interactive(request):
             voting_res.ts = datetime.datetime.now().timestamp()
             voting_res.save()
 
-        calling_user = get_user(voting_user_id).name.split(".")[0].capitalize()
-
-        text = f"Cześć {calling_user}.\n"
-        for values in voting_results.values():
-            if values['selected_user_name']:
-                t = f"w kategorii '{values['block_name']}' wybrano użytkownika '{values['selected_user_name']}'.\n"
-                text += t
-            else:
-                t = f"W kategorii {values['block_name']} nie wybrano nikogo.\n"
-                text += t
-
+        text = create_text(voting_user_id=voting_user_id)
         CLIENT.chat_postMessage(channel=voting_user_id, text=text)
         return HttpResponse({"success": True}, status=200)
-
-
-def create_text(voting_user_id):
-
-    voting_results = VotingResults.objects.get(voting_user_id=get_user(slack_id=voting_user_id))
-
-    voting_user_name = get_user(voting_user_id).name.split(".")[0].capitalize()
-    categories = ['team_up_to_win', 'act_to_deliver', 'disrupt_to_grow']
-    text = f"Cześć {voting_user_name}.\n"
-    print(voting_results)
-    for attrs in categories:
-        if voting_results.attrs:
-            text += f"W kategorii '{attrs}' wybrano użytkownika '{voting_results.attrs.name}'.\n"
-        else:
-            text = f"W kategorii {attrs} nie wybrano nikogo.\n"
-
-
-    # text = (
-    #     f"Cześć {voting_user_name}.\n"
-    #     f"W kategorii 'Team up to win' wybrano {voting_results.team_up_to_win.name}.\n"
-    #     f"W kategorii 'Act to deliver' wybrano {voting_results.act_to_deliver.name}.\n"
-    #     f"W kategorii 'Disrupt to grow' wybrano {voting_results.disrupt_to_grow.name}.\n"
-    # )
-    return text
-
-"""Archiwizowanie tabeli z wynikami w odrębnej tabeli i zerowanie głównej"""
 
 
 @csrf_exempt
 def check_votes(request):
     """Check user votes.
-    @param request: json
+    @param request
     @return:
     """
     if request.method == "POST":
@@ -289,9 +268,39 @@ def check_votes(request):
         return HttpResponse(status=200)
 
 
+@csrf_exempt
+def check_points(request):
+    """Check the points you get."""
+    if request.method == "POST":
+        data = prepare_data(request=request)
+        voting_user_id = data.get("user_id")
+
+        point_team_up_to_win = len(VotingResults.objects.filter(team_up_to_win=get_user(voting_user_id)))
+        point_act_to_deliver = len(VotingResults.objects.filter(act_to_deliver=get_user(voting_user_id)))
+        point_disrupt_to_grow = len(VotingResults.objects.filter(disrupt_to_grow=get_user(voting_user_id)))
+
+        text = f"Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.\n" \
+               f"Twoje punkty w kategorii 'Team up to win' to {point_team_up_to_win}.\n" \
+               f"Twoje punkty w kategorii 'Act to deliver' to {point_act_to_deliver}.\n" \
+               f"Twoje punkty w kategorii 'Disrupt to grow' to {point_disrupt_to_grow}."
+
+        CLIENT.chat_postMessage(channel=voting_user_id, text=text)
+        return HttpResponse(status=200)
+
+
 def archive_results():
-    """Zarchiwizuj wyniki i wyczyść bazę danych."""
-    pass
+    """Archive the results and drop the score table once a month."""
+    data = VotingResults.objects.all()
+    for obj in data:
+        print(dir(obj))
+        archive_data = ArchiveVotingResults()
+        for field in data.fields:
+            setattr(archive_data, field.name, getattr(obj.field.name))
+            archive_data.save()
+            obj.delete()
+    return HttpResponse(status=200)
+
+# archive_results()
 
 
 def render_json_response(request, data, status=None, support_jsonp=False):
