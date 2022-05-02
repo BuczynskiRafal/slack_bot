@@ -48,12 +48,15 @@ class AbstractVotingResults(models.Model):
     team_up_to_win = models.OneToOneField(
         SlackUser, on_delete=models.RESTRICT, null=True
     )
+    points_team_up_to_win = models.IntegerField(default=0)
     act_to_deliver = models.OneToOneField(
         SlackUser, on_delete=models.RESTRICT, null=True
     )
+    points_act_to_deliver = models.IntegerField(default=0)
     disrupt_to_grow = models.OneToOneField(
         SlackUser, on_delete=models.RESTRICT, null=True
     )
+    points_disrupt_to_grow = models.IntegerField(default=0)
     voting_user_id = models.OneToOneField(
         SlackUser, on_delete=models.RESTRICT, null=True
     )
