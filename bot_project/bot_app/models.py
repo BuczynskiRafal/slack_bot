@@ -16,6 +16,13 @@ class SlackProfile(models.Model):
         return f"{self.first_name} {self.last_name}"
 
 
+class TotalPoints(models.Model):
+    points_team_up_to_win = models.IntegerField(default=0)
+    points_act_to_deliver = models.IntegerField(default=0)
+    points_disrupt_to_grow = models.IntegerField(default=0)
+    ts = models.DateTimeField(auto_now=True)
+
+
 class SlackUser(models.Model):
     slack_id = models.TextField(unique=True, blank=True, null=True)
     team_id = models.TextField(blank=True, null=True)
@@ -39,9 +46,10 @@ class SlackUser(models.Model):
     profile = models.OneToOneField(
         SlackProfile, on_delete=models.CASCADE, related_name="slack_profile"
     )
+    points = models.OneToOneField(TotalPoints, on_delete=models.CASCADE, related_name="user_points", null=True)
 
     def __str__(self):
-        return f"{self.slack_id}"
+        return f"{self.slack_id} -> {self.name}"
 
 
 class AbstractVotingResults(models.Model):
