@@ -1,4 +1,5 @@
 import datetime
+from typing import Dict
 from django.db.models import Sum
 from django.http import HttpResponse
 
@@ -7,6 +8,203 @@ from .models import VotingResults, ArchiveVotingResults
 from .scrap_users import get_user, get_users
 
 CATEGORIES = ["Team up to win", "Act to deliver", "Disrupt to grow"]
+
+
+class DialogWidow:
+    """Create a message with voting form."""
+
+    """Message header"""
+    START_TEXT = {
+        "type": "header",
+        "text": {
+            "type": "plain_text",
+            "text": ":mag: Search for the user you want to vote for in fallowing category.",
+            "emoji": True,
+        },
+    }
+
+    """Split text / message."""
+    DIVIDER = {"type": "divider"}
+
+    messages = [
+        {
+            "type": "section",
+            "text": {"type": "plain_text", "text": "Team up to win.", "emoji": True},
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a user",
+                        "emoji": True,
+                    },
+                    "action_id": "actionId-0",
+                },
+                {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Choose number of points",
+                        "emoji": True,
+                    },
+                    "options": [
+                        {
+                            "text": {"type": "plain_text", "text": "0", "emoji": True},
+                            "value": "value-0",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "1", "emoji": True},
+                            "value": "value-1",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "2", "emoji": True},
+                            "value": "value-2",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "3", "emoji": True},
+                            "value": "value-3",
+                        },
+                    ],
+                    "action_id": "actionId-1",
+                },
+            ],
+        },
+        {
+            "type": "section",
+            "text": {"type": "plain_text", "text": "Act to deliver.", "emoji": True},
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a user",
+                        "emoji": True,
+                    },
+                    "action_id": "actionId-0",
+                },
+                {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Choose number of points",
+                        "emoji": True,
+                    },
+                    "options": [
+                        {
+                            "text": {"type": "plain_text", "text": "0", "emoji": True},
+                            "value": "value-0",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "1", "emoji": True},
+                            "value": "value-1",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "2", "emoji": True},
+                            "value": "value-2",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "3", "emoji": True},
+                            "value": "value-3",
+                        },
+                    ],
+                    "action_id": "actionId-1",
+                },
+            ],
+        },
+        {
+            "type": "section",
+            "text": {"type": "plain_text", "text": "Disrupt to grow.", "emoji": True},
+        },
+        {
+            "type": "actions",
+            "elements": [
+                {
+                    "type": "users_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Select a user",
+                        "emoji": True,
+                    },
+                    "action_id": "actionId-0",
+                },
+                {
+                    "type": "static_select",
+                    "placeholder": {
+                        "type": "plain_text",
+                        "text": "Choose number of points",
+                        "emoji": True,
+                    },
+                    "options": [
+                        {
+                            "text": {"type": "plain_text", "text": "0", "emoji": True},
+                            "value": "value-0",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "1", "emoji": True},
+                            "value": "value-1",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "2", "emoji": True},
+                            "value": "value-2",
+                        },
+                        {
+                            "text": {"type": "plain_text", "text": "3", "emoji": True},
+                            "value": "value-3",
+                        },
+                    ],
+                    "action_id": "actionId-1",
+                },
+            ],
+        },
+    ]
+
+    def __init__(self, channel) -> None:
+        self.channel = channel
+        self.icon_emoji = ":robot_face:"
+        self.completed = False
+        self.timestamp = ""
+        self.callback_id = "U03BKQMSU5D"
+
+    def get_message(self) -> Dict:
+        """Prepare complete message.
+        @return: dict
+        """
+        return {
+            "ts": self.timestamp,
+            "channel": self.channel,
+            "username": "Program Wyróżnień - bot",
+            "icon_emoji": self.icon_emoji,
+            "blocks": [
+                self.DIVIDER,
+                self.START_TEXT,
+                self.DIVIDER,
+                self.messages[0],
+                self.messages[1],
+                self.DIVIDER,
+                self.messages[2],
+                self.messages[3],
+                self.DIVIDER,
+                self.messages[4],
+                self.messages[5],
+                self.DIVIDER,
+                # self._get_reaction_task(),
+            ],
+        }
+
+    def _get_reaction_task(self):
+        checkmark = ":white_check_mark:"
+        if not self.completed:
+            checkmark = ":white_large_square:"
+
+        text = f"{checkmark} *React to this message!*"
+
+        return {"type": "section", "text": {"type": "mrkdwn", "text": text}}
 
 
 def total_points_current_month():
