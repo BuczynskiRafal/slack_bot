@@ -1,8 +1,6 @@
 import datetime
 from typing import Dict
 from django.db.models import Sum
-from django.http import HttpResponse
-
 
 from .models import VotingResults, ArchiveVotingResults
 from .scrap_users import get_user, get_users
@@ -169,9 +167,9 @@ class DialogWidow:
         self.icon_emoji = ":robot_face:"
         self.completed = False
         self.timestamp = ""
-        self.callback_id = "U03BKQMSU5D"
+        # self.callback_id = "U03BKQMSU5D"
 
-    def get_message(self) -> Dict:
+    def get_vote_message(self) -> Dict:
         """Prepare complete message.
         @return: dict
         """
@@ -207,7 +205,11 @@ class DialogWidow:
         return {"type": "section", "text": {"type": "mrkdwn", "text": text}}
 
 
-def total_points_current_month():
+def total_points_current_month() -> dict:
+    """Calculate sum of points for each user for current month.
+    @rtype: dict
+    @return : dict contain sum of point for all slack users.
+    """
     users = get_users()
     users_points = {}
     for user in users:
@@ -215,7 +217,11 @@ def total_points_current_month():
     return users_points
 
 
-def total_points_current_day():
+def total_points_current_day() -> dict:
+    """Calculate sum of points for each user for current day.
+    @rtype: dict
+    @return : dict contain sum of point for all slack users.
+    """
     users = get_users()
     users_points = {}
     for user in users:
@@ -223,7 +229,11 @@ def total_points_current_day():
     return users_points
 
 
-def total_points_all_time():
+def total_points_all_time() -> dict:
+    """Calculate sum of points for each user for all time.
+    @rtype: dict
+    @return : dict contain sum of point for all slack users.
+    """
     users_points = total_points_current_month()
     for user, values in users_points.items():
         for k, v in values.items():
@@ -231,7 +241,13 @@ def total_points_all_time():
     return users_points
 
 
-def winner_month():
+def winner_month() -> str:
+    """Find the winners in each category for current month.
+    @rtype: str
+    @return: message contain information about winners
+    """
+
+    """Collect data form database."""
     users_points = total_points_current_month()
     winner_team_up_to_win = max(
         users_points, key=lambda v: users_points[v]["points_team_up_to_win"]
@@ -253,13 +269,22 @@ def winner_month():
         (winner_act_to_deliver, points_act_to_deliver),
         (winner_disrupt_to_grow, points_disrupt_to_grow),
     ]
+
+    """Create message."""
     text = f"Wyniki głosowania w programie wyróżnień.\n"
     for i in range(3):
-        text += f"W kategorii '{CATEGORIES[i]}' wygrywa '{get_user(winners[i][0]).name}', liczba głosów {winners[i][1]}.\n"
+        text += f"W kategorii '{CATEGORIES[i]}' wygrywa '{get_user(winners[i][0]).name}', " \
+                f"liczba głosów {winners[i][1]}.\n"
     return text
 
 
-def winner_all_time():
+def winner_all_time() -> str:
+    """Find the winners in each category for all time.
+    @rtype: str
+    @return: message contain information about winners
+    """
+
+    """Collect data form database."""
     users_points = total_points_all_time()
     winner_team_up_to_win = max(
         users_points, key=lambda v: users_points[v]["points_team_up_to_win"]
@@ -281,14 +306,18 @@ def winner_all_time():
         (winner_act_to_deliver, points_act_to_deliver),
         (winner_disrupt_to_grow, points_disrupt_to_grow),
     ]
+    """Create message."""
     text = f"Wyniki głosowania w programie wyróżnień.\n"
     for i in range(3):
-        text += f"W kategorii '{CATEGORIES[i]}' wygrywa '{get_user(winners[i][0]).name}', liczba głosów {winners[i][1]}.\n"
+        text += f"W kategorii '{CATEGORIES[i]}' wygrywa '{get_user(winners[i][0]).name}', " \
+                f"liczba głosów {winners[i][1]}.\n"
     return text
 
 
-def archive_results():
-    """Archive the results and drop the score table once a month."""
+def archive_results() -> None:
+    """Archive the results and drop the score table once a month.
+    @return: None
+    """
     data = VotingResults.objects.all()
     for obj in data:
         try:
@@ -299,10 +328,15 @@ def archive_results():
             obj.delete()
         except Exception as e:
             print(e)
-    return HttpResponse(status=200)
+    # return HttpResponse(status=200)
 
 
 def get_start_and_end():
+    """Calculate timestamp for start and end current day.
+    @return:
+        ts_start : timestamp of beginning current day.
+        ts_end : timestamp of end current day.
+    """
     today = datetime.datetime.now()
     start = today.replace(hour=0, minute=0, second=0, microsecond=0)
     end = today.replace(hour=23, minute=59, second=59, microsecond=9999)
@@ -311,32 +345,52 @@ def get_start_and_end():
     return ts_start, ts_end
 
 
-def validate_user_selection(voting_results):
-    if (
-        voting_results[0]["selected_user"] == voting_results[1]["selected_user"]
-        or voting_results[0]["selected_user"] == voting_results[2]["selected_user"]
-        or voting_results[1]["selected_user"] == voting_results[2]["selected_user"]
-    ):
-        return False
-    return True
-
-
-def validate_votes_himself(voting_results: dict, voting_user_id: str):
-    """Check if the user voted for himself."""
-    for i in range(3):
-        if voting_results[i]["selected_user"] == voting_user_id:
+def validate_user_selection(voting_results: dict) -> bool:
+    """Check if user not vote for the same user in many categories.
+    @rtype: bool
+    """
+    team_up = voting_results[0]["selected_user"]
+    act_to = voting_results[1]["selected_user"]
+    disrupt = voting_results[2]["selected_user"]
+    selections = [team_up, act_to, disrupt]
+    if selections.count(None) >= 2:
+        return True
+    else:
+        if team_up == act_to or team_up == disrupt or act_to == disrupt:
             return False
     return True
 
 
-def validate_points_amount(voting_results: dict):
+def validate_votes_himself(voting_results: dict, voting_user_id: str) -> bool:
+    """Check if the user voted for himself.
+    @rtype: bool
+    """
+    for i in range(3):
+        if voting_results[i]["selected_user"]:
+            if voting_results[i]["selected_user"] == voting_user_id:
+                return False
+        else:
+            continue
+    return True
+
+
+def validate_points_amount(voting_results: dict) -> bool:
+    """Check if sum all points is between 0-3.
+    @rtype: bool
+    """
     points = 0
     for i in range(3):
-        points += voting_results[i]["points"]
-    return 0 < points <= 3
+        if "points" in voting_results[i]:
+            points += voting_results[i]["points"]
+        else:
+            points += 0
+    return 0 <= points <= 3
 
 
-def validate(voting_results: dict, voting_user_id: str):
+def validate(voting_results: dict, voting_user_id: str) -> bool:
+    """Check if data from request is validate.
+    @return: bool : is validate data
+    """
     return all(
         [
             validate_points_amount(voting_results),
@@ -346,13 +400,15 @@ def validate(voting_results: dict, voting_user_id: str):
     )
 
 
-def error_message(voting_results: dict, voting_user_id: str):
+def error_message(voting_results: dict, voting_user_id: str) -> str:
+    """Create errors message. Contain all errors.
+    @rtype: str : error message
+    """
     text = ""
-    if (
+    if not (
         validate_votes_himself(
             voting_results=voting_results, voting_user_id=voting_user_id
         )
-        is False
     ):
         text += "You cannot vote for yourself.\n"
     if validate_user_selection(voting_results=voting_results) is False:
@@ -363,9 +419,15 @@ def error_message(voting_results: dict, voting_user_id: str):
     return text
 
 
-def save_votes(voting_results: dict, voting_user: str):
-    """Save votes to db."""
+def save_votes(voting_results: dict, voting_user: str) -> None:
+    """Save votes to db.
+    Create object and save in db,
+    after then update object with data form slack voting form.
+    @return: None
+    """
     desc = VotingResults.objects.filter(voting_user_id=voting_user).exists()
+
+    """If voting user not in db, create object."""
     if not desc:
         voting_res = VotingResults.objects.create(
             voting_user_id=voting_user,
@@ -373,6 +435,9 @@ def save_votes(voting_results: dict, voting_user: str):
         )
         voting_res.save()
 
+    """If user in db, update object.
+    The reason for this is that saving all data form form, 
+    even if the form not complete."""
     if desc:
         voting_res = VotingResults.objects.get(voting_user_id=voting_user)
         try:
@@ -412,6 +477,9 @@ def save_votes(voting_results: dict, voting_user: str):
 
 
 def prepare_data(request):
+    """Decode data from request.
+    @return: dict
+    """
     decode_data = request.body.decode("utf-8")
 
     data = {}
@@ -424,7 +492,7 @@ def prepare_data(request):
 
 def create_text(voting_user_id: str) -> str:
     """Create a message containing information on how the user voted.
-    @return: str :
+    @return: str : information on how the user voted
     """
     voting_results = VotingResults.objects.get(
         voting_user_id=get_user(slack_id=voting_user_id)
@@ -452,7 +520,7 @@ def create_text(voting_user_id: str) -> str:
         if user:
             text += f"W kategorii '{category}' wybrano użytkownika: '{user.name}', punkty: '{points}'.\n"
         else:
-            text += f"W kategorii '{category}' nie wybrano nikogo i nie przyznano punktów.\n"
+            text += f"W kategorii '{category}' nie dokonano wyboru.\n"
     return text
 
 

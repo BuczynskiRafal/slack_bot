@@ -38,11 +38,11 @@ info_channels = {}
 def send_message(channel, user):
     if channel not in info_channels:
         info_channels[channel] = {}
-    # if user in info_channels[channel]:
-    #     return
+    if user in info_channels[channel]:
+        return
 
     dialog_window = DialogWidow(channel)
-    message = dialog_window.get_message()
+    message = dialog_window.get_vote_message()
     response = CLIENT.chat_postMessage(**message, text="Zagłosuj na użytkownika.")
     dialog_window.timestamp = response["ts"]
     info_channels[channel][user] = message
@@ -54,7 +54,7 @@ def vote(request):
     if request.method == "POST":
         data = prepare_data(request=request)
         user_id = data.get("user_id")
-        send_message(f"@{user_id}", user_id)
+        send_message(user_id, user_id)
         return HttpResponse(status=200)
 
 
@@ -65,6 +65,7 @@ def interactive(request):
         data = json.loads(request.POST["payload"])
         voting_user_id = data["user"].get("id")
 
+        """Prepare data (voting results) for saving in database. """
         voting_results = {}
         counter = 0
         for idx in data["message"]["blocks"]:
@@ -88,14 +89,15 @@ def interactive(request):
                 except TypeError as e:
                     print(e)
 
+        """Check if data is validate. If not send message contain errors."""
         voting_user = get_user(slack_id=voting_user_id)
-
         if not validate(voting_results=voting_results, voting_user_id=voting_user_id):
             CLIENT.chat_postMessage(
                 channel=voting_user_id,
                 text=error_message(voting_results, voting_user_id),
             )
         else:
+            """Save voting results in database and send message with voting results."""
             save_votes(voting_results=voting_results, voting_user=voting_user)
             text = create_text(voting_user_id=voting_user_id)
             CLIENT.chat_postMessage(channel=voting_user_id, text=text)
@@ -118,7 +120,10 @@ def check_votes(request):
 
 @csrf_exempt
 def check_points(request):
-    """Check the points you get."""
+    """Check the points you get.
+    @param: request
+    @return:
+    """
     data = prepare_data(request=request)
     voting_user_id = data.get("user_id")
     data = calculate_points(voting_user_id)
@@ -136,7 +141,10 @@ def check_points(request):
 
 @csrf_exempt
 def check_winner_month(request):
-    """Check winner of current month."""
+    """Check winner of current month.
+    @param: request
+    @return:
+    """
     data = prepare_data(request=request)
     voting_user_id = data.get("user_id")
     text = winner_month()
