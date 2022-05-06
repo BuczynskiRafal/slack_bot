@@ -1,31 +1,28 @@
+"""
+The module contains a collection of methods that
+support voting in the award program.
+"""
 import calendar
 import datetime
 import json
 import time
-from typing import Dict
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
 
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
+from .message import DialogWidow
 from .scrap_users import get_user
 from .utils import (
-    DialogWidow,
     calculate_points,
     create_text,
     prepare_data,
-    validate_user_selection,
-    validate_votes_himself,
-    validate_points_amount,
     validate,
     error_message,
     save_votes,
-    calculate_archive_points,
-    get_start_and_end,
-    calculate_points_ts,
-    archive_results,
-    winner_month,
+    get_start_end_month,
+    winner,
 )
 
 
@@ -36,11 +33,13 @@ info_channels = {}
 
 
 def send_message(channel, user):
+    """Prepare message contain voting form.
+    @return: None
+    """
     if channel not in info_channels:
         info_channels[channel] = {}
     if user in info_channels[channel]:
         return
-
     dialog_window = DialogWidow(channel)
     message = dialog_window.get_vote_message()
     response = CLIENT.chat_postMessage(**message, text="Zagłosuj na użytkownika.")
@@ -120,13 +119,14 @@ def check_votes(request):
 
 @csrf_exempt
 def check_points(request):
-    """Check the points you get.
+    """Check the points you get in current month.
     @param: request
     @return:
     """
     data = prepare_data(request=request)
     voting_user_id = data.get("user_id")
-    data = calculate_points(voting_user_id)
+    current_month = get_start_end_month()
+    data = calculate_points(voting_user_id, ts_start=current_month[0], ts_end=current_month[1])
 
     text = (
         f"Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.\n"
@@ -147,8 +147,8 @@ def check_winner_month(request):
     """
     data = prepare_data(request=request)
     voting_user_id = data.get("user_id")
-    text = winner_month()
-
+    current_month = get_start_end_month()
+    text = winner(ts_start=current_month[0], ts_end=current_month[1])
     CLIENT.chat_postMessage(channel=voting_user_id, text=text)
     return HttpResponse(status=200)
 
@@ -157,18 +157,18 @@ def send_reminder():
     pass
 
 
-def run_once_a_month():
-    """Run the following method once a month.
-        archive_results() -> Archive voting results.
-
-    @rtype: object
-    """
-    while True:
-        today = datetime.datetime.today()
-        print(today)
-        if today.date() == calendar.monthrange(today.year, today.month):
-            archive_results()
-        time.sleep(28800)
+# def run_once_a_month():
+#     """Run the following method once a month.
+#         archive_results() -> Archive voting results.
+#
+#     @rtype: object
+#     """
+#     while True:
+#         today = datetime.datetime.today()
+#         print(today)
+#         if today.date() == calendar.monthrange(today.year, today.month):
+#             archive_results()
+#         time.sleep(28800)
 
 
 def render_json_response(request, data, status=None, support_jsonp=False):
