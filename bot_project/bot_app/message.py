@@ -222,4 +222,24 @@ class DialogWidow:
 
         return {"type": "section", "text": {"type": "mrkdwn", "text": text}}
 
-
+    def return_message(self, text):
+        """Prepare complete message.
+        @return: dict
+        """
+        return {
+            "ts": self.timestamp,
+            "channel": self.channel,
+            "username": "Program Wyróżnień - bot",
+            "icon_emoji": self.icon_emoji,
+            "blocks": [
+                self.DIVIDER,
+                {
+                    "type": "header",
+                    "text": {
+                        "type": "plain_text",
+                        "text": text,
+                        "emoji": True,
+                    },
+                }
+            ],
+        }

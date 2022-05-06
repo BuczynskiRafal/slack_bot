@@ -1,7 +1,6 @@
 from django.urls import path
-from .views import slack_events, call_info
-from .voting import vote, interactive, check_votes, check_points, check_winner_month
-
+from .events import slack_events
+from .slash import vote, interactive, check_votes, check_points, check_winner_month, call_info
 
 app_name = 'bot_app'
 

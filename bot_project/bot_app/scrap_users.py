@@ -6,7 +6,6 @@ from .models import SlackProfile, SlackUser
 
 
 CLIENT = settings.CLIENT
-
 users_store = {}
 
 

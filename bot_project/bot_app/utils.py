@@ -282,3 +282,6 @@ def calculate_points(voting_user_id, ts_start=0.1, ts_end=9999999999.9):
         if v is None:
             points[k] = 0
     return points
+
+
+"""umówić się z Ignacym na spotkanie, omówić kod, działanie """

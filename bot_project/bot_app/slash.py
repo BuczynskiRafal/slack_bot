@@ -24,7 +24,7 @@ from .utils import (
     get_start_end_month,
     winner,
 )
-
+from .events import check_if_searched_words, send_info
 
 CLIENT = settings.CLIENT
 BOT_ID = CLIENT.api_call("auth.test")["user_id"]
@@ -149,7 +149,17 @@ def check_winner_month(request):
     voting_user_id = data.get("user_id")
     current_month = get_start_end_month()
     text = winner(ts_start=current_month[0], ts_end=current_month[1])
+
     CLIENT.chat_postMessage(channel=voting_user_id, text=text)
+    return HttpResponse(status=200)
+
+
+@csrf_exempt
+def call_info(request):
+    """Supports the slash method - '/program-wyroznien'."""
+    data = prepare_data(request=request)
+    user_id = data.get("user_id")
+    send_info(user_id, user_id)
     return HttpResponse(status=200)
 
 
