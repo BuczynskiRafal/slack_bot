@@ -7,42 +7,64 @@ from .scrap_users import get_user, get_users
 CATEGORIES = ["Team up to win", "Act to deliver", "Disrupt to grow"]
 
 
-def total_points(ts_start=0, ts_end=9999999999.9) -> dict:
-    """Calculate sum of points for each user for current month.
-    @param ts_start: float - timestamp
+def calculate_points(voting_user_id, ts_start=0.1, ts_end=9999999999.9):
+    """Calculate points for single user in each category.
+    Enter input params ts_start and ts_end to calculate points in selected time range.
+    You can use 'get_start_end_month' method to create ts_start and ts_end parameters for current month.
+    You don't have to enter params to search for all time.
+    @param voting_user_id: str - slack id
+    @param ts_start: timestamp
+    @param ts_end: timestamp
+    @rtype: dict
+    @return: dict with categories as keys and sum of point as value.
+    """
+    points = {
+        "points_team_up_to_win": VotingResults.objects.filter(
+            team_up_to_win=get_user(voting_user_id), ts__range=(ts_start, ts_end)
+        ).aggregate(Sum("points_team_up_to_win"))["points_team_up_to_win__sum"],
+        "points_act_to_deliver": VotingResults.objects.filter(
+            act_to_deliver=get_user(voting_user_id), ts__range=(ts_start, ts_end)
+        ).aggregate(Sum("points_act_to_deliver"))["points_act_to_deliver__sum"],
+        "points_disrupt_to_grow": VotingResults.objects.filter(
+            disrupt_to_grow=get_user(voting_user_id), ts__range=(ts_start, ts_end)
+        ).aggregate(Sum("points_disrupt_to_grow"))["points_disrupt_to_grow__sum"],
+    }
+    return {k: 0 for k, v in points.items() if v is None}
+
+
+def total_points(ts_start=0.1, ts_end=9999999999.9) -> dict:
+    """Calculate sum of points for each user for current month or all time.
+    Enter input params ts_start and ts_end to calculate points for current month.
+    You can use 'get_start_end_month' method to create ts_start and ts_end parameters.
+    You don't have to enter params to search for all time.
+    @param ts_start: flotat - timestamp
     @param ts_end: float - timestamp
     @rtype: dict
     @return : dict contain sum of point for all slack users.
     """
     users = get_users()
-    users_points = {}
-    for user in users:
-        users_points[user.slack_id] = calculate_points(user.slack_id, ts_start=ts_start, ts_end=ts_end)
-    return users_points
+    return {user.slack_id:  calculate_points(user.slack_id, ts_start=ts_start, ts_end=ts_end) for user in users}
 
 
 def winner(ts_start=0.1, ts_end=9999999999.9) -> str:
-    """Find the winners in each category for current month.
+    """Find the winners in each category for current month or all time.
+    Enter input params ts_start and ts_end for searching in time range.
+    You can use 'get_start_end_month' method to create ts_start and ts_end parameters for searching in current month.
+    You don't have to enter params to search for all time.
+    @param ts_start: flotat - timestamp
+    @param ts_end: float - timestamp
     @rtype: str
     @return: message contain information about winners
     """
 
     """Collect data form database."""
     users_points = total_points(ts_start=ts_start, ts_end=ts_end)
-    winner_team_up_to_win = max(
-        users_points, key=lambda v: users_points[v]["points_team_up_to_win"]
-    )
+    winner_team_up_to_win = max(users_points, key=lambda v: users_points[v]["points_team_up_to_win"])
     points_team_up_to_win = users_points[winner_team_up_to_win]["points_team_up_to_win"]
-    winner_act_to_deliver = max(
-        users_points, key=lambda v: users_points[v]["points_act_to_deliver"]
-    )
+    winner_act_to_deliver = max(users_points, key=lambda v: users_points[v]["points_act_to_deliver"])
     points_act_to_deliver = users_points[winner_act_to_deliver]["points_act_to_deliver"]
-    winner_disrupt_to_grow = max(
-        users_points, key=lambda v: users_points[v]["points_disrupt_to_grow"]
-    )
-    points_disrupt_to_grow = users_points[winner_disrupt_to_grow][
-        "points_disrupt_to_grow"
-    ]
+    winner_disrupt_to_grow = max(users_points, key=lambda v: users_points[v]["points_disrupt_to_grow"])
+    points_disrupt_to_grow = users_points[winner_disrupt_to_grow]["points_disrupt_to_grow"]
 
     winners = [
         (winner_team_up_to_win, points_team_up_to_win),
@@ -125,7 +147,7 @@ def validate_points_amount(voting_results: dict) -> bool:
             points += voting_results[i]["points"]
         else:
             points += 0
-    return 0 <= points <= 3
+    return points == 3
 
 
 def validate(voting_results: dict, voting_user_id: str) -> bool:
@@ -152,10 +174,10 @@ def error_message(voting_results: dict, voting_user_id: str) -> str:
         )
     ):
         text += "You cannot vote for yourself.\n"
-    if validate_user_selection(voting_results=voting_results) is False:
+    if not validate_user_selection(voting_results=voting_results):
         text += "You cannot vote for the same user in two categories.\n"
-    if validate_points_amount(voting_results=voting_results) is False:
-        text += "You can give away a maximum of 3 points in all categories.\n"
+    if not validate_points_amount(voting_results=voting_results):
+        text += "You must give out exactly 3 points in total.\n"
     text += "Results were not saved."
     return text
 
@@ -170,7 +192,6 @@ def save_votes(voting_results: dict, voting_user: str) -> None:
     desc = VotingResults.objects.filter(voting_user_id=voting_user, ts__range=(current_month[0], current_month[1])).exists()
     """If voting user not in db, create object."""
     if not desc:
-        print('not desc')
         voting_res = VotingResults.objects.create(
             voting_user_id=voting_user,
             ts=datetime.datetime.now().timestamp(),
@@ -182,7 +203,6 @@ def save_votes(voting_results: dict, voting_user: str) -> None:
     even if the form not complete."""
     if desc:
         voting_res = VotingResults.objects.get(voting_user_id=voting_user, ts__range=(current_month[0], current_month[1]))
-        print(voting_res.id)
         try:
             voting_res.team_up_to_win = get_user(slack_id=voting_results[0]["selected_user"])
             voting_res.points_team_up_to_win = int(voting_results[0]["points"])
@@ -240,7 +260,7 @@ def create_text(voting_user_id: str) -> str:
         voting_user_id=get_user(slack_id=voting_user_id),
         ts__range=(current_month[0], current_month[1])
     )
-    text = f"Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.\n"
+    text = ""
     attributes = [
         (
             voting_results.team_up_to_win,
@@ -264,24 +284,3 @@ def create_text(voting_user_id: str) -> str:
         else:
             text += f"W kategorii '{category}' nie dokonano wyboru.\n"
     return text
-
-
-def calculate_points(voting_user_id, ts_start=0.1, ts_end=9999999999.9):
-    points = {
-        "points_team_up_to_win": VotingResults.objects.filter(
-            team_up_to_win=get_user(voting_user_id), ts__range=(ts_start, ts_end)
-        ).aggregate(Sum("points_team_up_to_win"))["points_team_up_to_win__sum"],
-        "points_act_to_deliver": VotingResults.objects.filter(
-            act_to_deliver=get_user(voting_user_id), ts__range=(ts_start, ts_end)
-        ).aggregate(Sum("points_act_to_deliver"))["points_act_to_deliver__sum"],
-        "points_disrupt_to_grow": VotingResults.objects.filter(
-            disrupt_to_grow=get_user(voting_user_id), ts__range=(ts_start, ts_end)
-        ).aggregate(Sum("points_disrupt_to_grow"))["points_disrupt_to_grow__sum"],
-    }
-    for k, v in points.items():
-        if v is None:
-            points[k] = 0
-    return points
-
-
-"""umówić się z Ignacym na spotkanie, omówić kod, działanie """

@@ -2,10 +2,9 @@
 The module contains a collection of methods that
 support voting in the award program.
 """
-import calendar
-import datetime
 import json
 import time
+
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, Http404
@@ -24,7 +23,7 @@ from .utils import (
     get_start_end_month,
     winner,
 )
-from .events import check_if_searched_words, send_info
+from .events import send_info
 
 CLIENT = settings.CLIENT
 BOT_ID = CLIENT.api_call("auth.test")["user_id"]
@@ -32,19 +31,19 @@ CATEGORIES = ["Team up to win", "Act to deliver", "Disrupt to grow"]
 info_channels = {}
 
 
-def send_message(channel, user):
-    """Prepare message contain voting form.
-    @return: None
-    """
-    if channel not in info_channels:
-        info_channels[channel] = {}
-    if user in info_channels[channel]:
-        return
-    dialog_window = DialogWidow(channel)
-    message = dialog_window.get_vote_message()
-    response = CLIENT.chat_postMessage(**message, text="Zagłosuj na użytkownika.")
-    dialog_window.timestamp = response["ts"]
-    info_channels[channel][user] = message
+# def send_message(channel, user):
+#     """Prepare message contain voting form.
+#     @return: None
+#     """
+#     if channel not in info_channels:
+#         info_channels[channel] = {}
+#     if user in info_channels[channel]:
+#         return
+#     dialog_window = DialogWidow(channel)
+#     message = dialog_window.get_vote_message()
+#     response = CLIENT.chat_postMessage(**message, text="Zagłosuj na użytkownika.")
+#     dialog_window.timestamp = response["ts"]
+#     info_channels[channel][user] = message
 
 
 @csrf_exempt
@@ -53,7 +52,11 @@ def vote(request):
     if request.method == "POST":
         data = prepare_data(request=request)
         user_id = data.get("user_id")
-        send_message(user_id, user_id)
+
+        vote_form = DialogWidow(channel=user_id)
+        message = vote_form.get_vote_message()
+        response = CLIENT.chat_postMessage(**message, text="Zagłosuj na użytkownika.")
+        vote_form.timestamp = response['ts']
         return HttpResponse(status=200)
 
 
@@ -86,21 +89,28 @@ def interactive(request):
                         slack_id=voting_results[counter]["selected_user"]
                     ).name
                 except TypeError as e:
+                    voting_results[counter]["points"] = 0
                     print(e)
 
         """Check if data is validate. If not send message contain errors."""
         voting_user = get_user(slack_id=voting_user_id)
+        response_message = DialogWidow(channel=voting_user_id)
+        name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+
         if not validate(voting_results=voting_results, voting_user_id=voting_user_id):
-            CLIENT.chat_postMessage(
-                channel=voting_user_id,
-                text=error_message(voting_results, voting_user_id),
-            )
+            text = error_message(voting_results, voting_user_id)
+            message = response_message.check_points_message(name=name, text=text)
+            response = CLIENT.chat_postMessage(**message, text='Check your votes.')
+            response_message.timestamp = response["ts"]
+            return HttpResponse(status=200)
         else:
             """Save voting results in database and send message with voting results."""
             save_votes(voting_results=voting_results, voting_user=voting_user)
             text = create_text(voting_user_id=voting_user_id)
-            CLIENT.chat_postMessage(channel=voting_user_id, text=text)
-            return HttpResponse({"success": True}, status=200)
+            message = response_message.check_points_message(name=name, text=text)
+            response = CLIENT.chat_postMessage(**message, text='Check your votes.')
+            response_message.timestamp = response["ts"]
+            return HttpResponse(status=200)
 
 
 @csrf_exempt
@@ -128,14 +138,16 @@ def check_points(request):
     current_month = get_start_end_month()
     data = calculate_points(voting_user_id, ts_start=current_month[0], ts_end=current_month[1])
 
+    points_message = DialogWidow(channel=voting_user_id)
+
+    name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
     text = (
-        f"Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.\n"
         f"Twoje punkty w kategorii 'Team up to win' to {data['points_team_up_to_win']}.\n"
         f"Twoje punkty w kategorii 'Act to deliver' to {data['points_act_to_deliver']}.\n"
         f"Twoje punkty w kategorii 'Disrupt to grow' to {data['points_disrupt_to_grow']}."
     )
-
-    CLIENT.chat_postMessage(channel=voting_user_id, text=text)
+    message = points_message.check_points_message(name=name, text=text)
+    CLIENT.chat_postMessage(**message, text='Check the points you get in current month')
     return HttpResponse(status=200)
 
 
@@ -149,7 +161,6 @@ def check_winner_month(request):
     voting_user_id = data.get("user_id")
     current_month = get_start_end_month()
     text = winner(ts_start=current_month[0], ts_end=current_month[1])
-
     CLIENT.chat_postMessage(channel=voting_user_id, text=text)
     return HttpResponse(status=200)
 
@@ -159,7 +170,11 @@ def call_info(request):
     """Supports the slash method - '/program-wyroznien'."""
     data = prepare_data(request=request)
     user_id = data.get("user_id")
-    send_info(user_id, user_id)
+
+    name = f"*Cześć {get_user(user_id).name.split('.')[0].capitalize()}.*\n"
+    info_message = DialogWidow(channel=user_id)
+    message = info_message.about_message(name)
+    CLIENT.chat_postMessage(**message, text='See information about honor program')
     return HttpResponse(status=200)
 
 

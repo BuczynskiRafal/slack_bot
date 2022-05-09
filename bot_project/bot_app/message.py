@@ -23,9 +23,6 @@ class DialogWidow:
     with open("about", encoding="UTF8") as file:
         about_text = file.read()
 
-    """Stores information about the award program. 
-    It is part of the message being sent."""
-    START_ABOUT_TEXT = {"type": "section", "text": {"type": "mrkdwn", "text": about_text}}
 
     voting_form = [
         {
@@ -172,46 +169,56 @@ class DialogWidow:
         self.timestamp = ""
         # self.callback_id = "U03BKQMSU5D"
 
+    @staticmethod
+    def get_text(text):
+        return {"type": "section", "text": {"type": "mrkdwn", "text": text}}
+
+    def message(self, *args):
+        """Prepare complete message.
+        @return: dict
+        """
+        return {
+            "ts": self.timestamp,
+            "channel": self.channel,
+            "username": "Program Wyróżnień - bot",
+            "icon_emoji": self.icon_emoji,
+            "blocks": [*args],
+        }
+
     def get_vote_message(self) -> Dict:
         """Prepare complete message.
         @return: dict
         """
-        return {
-            "ts": self.timestamp,
-            "channel": self.channel,
-            "username": "Program Wyróżnień - bot",
-            "icon_emoji": self.icon_emoji,
-            "blocks": [
-                self.DIVIDER,
-                self.START_TEXT,
-                self.DIVIDER,
-                self.voting_form[0],
-                self.voting_form[1],
-                self.DIVIDER,
-                self.voting_form[2],
-                self.voting_form[3],
-                self.DIVIDER,
-                self.voting_form[4],
-                self.voting_form[5],
-                self.DIVIDER,
-            ],
-        }
+        return self.message(
+            self.DIVIDER,
+            self.START_TEXT,
+            self.DIVIDER,
+            self.voting_form[0],
+            self.voting_form[1],
+            self.DIVIDER,
+            self.voting_form[2],
+            self.voting_form[3],
+            self.DIVIDER,
+            self.voting_form[4],
+            self.voting_form[5],
+            self.DIVIDER,
+        )
 
-    def get_about_message(self) -> Dict:
-        """Prepare complete message.
-        @return: dict
+    def about_message(self, name) -> Dict:
+        return self.message(
+            self.get_text(text=name),
+            self.DIVIDER,
+            self.get_text(text=self.about_text),
+            self.DIVIDER,)
+
+    def check_points_message(self, name, text) -> Dict:
         """
-        return {
-            "ts": self.timestamp,
-            "channel": self.channel,
-            "username": "Program Wyróżnień - bot",
-            "icon_emoji": self.icon_emoji,
-            "blocks": [
-                self.START_ABOUT_TEXT,
-                self.DIVIDER,
-                self._get_reaction_task()
-            ],
-        }
+        @rtype: object
+        """
+        return self.message(
+            self.get_text(text=name),
+            self.get_text(text=text),
+            self.DIVIDER,)
 
     def _get_reaction_task(self):
         checkmark = ":white_check_mark:"
@@ -221,25 +228,3 @@ class DialogWidow:
         text = f"{checkmark} *React to this message!*"
 
         return {"type": "section", "text": {"type": "mrkdwn", "text": text}}
-
-    def return_message(self, text):
-        """Prepare complete message.
-        @return: dict
-        """
-        return {
-            "ts": self.timestamp,
-            "channel": self.channel,
-            "username": "Program Wyróżnień - bot",
-            "icon_emoji": self.icon_emoji,
-            "blocks": [
-                self.DIVIDER,
-                {
-                    "type": "header",
-                    "text": {
-                        "type": "plain_text",
-                        "text": text,
-                        "emoji": True,
-                    },
-                }
-            ],
-        }
