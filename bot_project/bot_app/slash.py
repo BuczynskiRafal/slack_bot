@@ -3,8 +3,6 @@ The module contains a collection of methods that
 support voting in the award program.
 """
 import json
-import time
-
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, Http404
@@ -23,27 +21,11 @@ from .utils import (
     get_start_end_month,
     winner,
 )
-from .events import send_info
 
 CLIENT = settings.CLIENT
 BOT_ID = CLIENT.api_call("auth.test")["user_id"]
 CATEGORIES = ["Team up to win", "Act to deliver", "Disrupt to grow"]
 info_channels = {}
-
-
-# def send_message(channel, user):
-#     """Prepare message contain voting form.
-#     @return: None
-#     """
-#     if channel not in info_channels:
-#         info_channels[channel] = {}
-#     if user in info_channels[channel]:
-#         return
-#     dialog_window = DialogWidow(channel)
-#     message = dialog_window.get_vote_message()
-#     response = CLIENT.chat_postMessage(**message, text="Zagłosuj na użytkownika.")
-#     dialog_window.timestamp = response["ts"]
-#     info_channels[channel][user] = message
 
 
 @csrf_exempt
@@ -54,7 +36,7 @@ def vote(request):
         user_id = data.get("user_id")
 
         vote_form = DialogWidow(channel=user_id)
-        message = vote_form.get_vote_message()
+        message = vote_form.vote_message()
         response = CLIENT.chat_postMessage(**message, text="Zagłosuj na użytkownika.")
         vote_form.timestamp = response['ts']
         return HttpResponse(status=200)
@@ -92,17 +74,21 @@ def interactive(request):
                     voting_results[counter]["points"] = 0
                     print(e)
 
+        """przycisk wyślij,  jeśli nie ma w request akcji wyslij nie podejmuj dalszego działania"""
+
         """Check if data is validate. If not send message contain errors."""
         voting_user = get_user(slack_id=voting_user_id)
         response_message = DialogWidow(channel=voting_user_id)
         name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
 
         if not validate(voting_results=voting_results, voting_user_id=voting_user_id):
+
             text = error_message(voting_results, voting_user_id)
             message = response_message.check_points_message(name=name, text=text)
             response = CLIENT.chat_postMessage(**message, text='Check your votes.')
             response_message.timestamp = response["ts"]
             return HttpResponse(status=200)
+
         else:
             """Save voting results in database and send message with voting results."""
             save_votes(voting_results=voting_results, voting_user=voting_user)
@@ -182,20 +168,6 @@ def send_reminder():
     pass
 
 
-# def run_once_a_month():
-#     """Run the following method once a month.
-#         archive_results() -> Archive voting results.
-#
-#     @rtype: object
-#     """
-#     while True:
-#         today = datetime.datetime.today()
-#         print(today)
-#         if today.date() == calendar.monthrange(today.year, today.month):
-#             archive_results()
-#         time.sleep(28800)
-
-
 def render_json_response(request, data, status=None, support_jsonp=False):
     json_str = json.dumps(data, ensure_ascii=False, indent=2)
     callback = request.GET.get("callback")
@@ -252,3 +224,4 @@ def slack_events(
 
     # default case
     return HttpResponse("")
+

@@ -165,14 +165,10 @@ def validate(voting_results: dict, voting_user_id: str) -> bool:
 
 def error_message(voting_results: dict, voting_user_id: str) -> str:
     """Create errors message. Contain all errors.
-    @rtype: str : error message
+    @rtype: Tuple[dict, str] : error message
     """
     text = ""
-    if not (
-        validate_votes_himself(
-            voting_results=voting_results, voting_user_id=voting_user_id
-        )
-    ):
+    if not validate_votes_himself(voting_results=voting_results, voting_user_id=voting_user_id):
         text += "You cannot vote for yourself.\n"
     if not validate_user_selection(voting_results=voting_results):
         text += "You cannot vote for the same user in two categories.\n"

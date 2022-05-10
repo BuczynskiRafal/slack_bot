@@ -185,7 +185,7 @@ class DialogWidow:
             "blocks": [*args],
         }
 
-    def get_vote_message(self) -> Dict:
+    def vote_message(self) -> Dict:
         """Prepare complete message.
         @return: dict
         """

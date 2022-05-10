@@ -61,6 +61,7 @@ class VotingResults(models.Model):
         SlackUser, on_delete=models.RESTRICT, related_name="voting_user_id", null=True
     )
     ts = models.FloatField(null=True)
+    # time  = models.
 
     def __str__(self):
         return f"Class: {self.__class__.__name__}, user: {self.voting_user_id}."
