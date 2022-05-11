@@ -1,0 +1,4 @@
+# TODO
+1. Change databese to postgresql
+2. Running the application in a container.
+3.

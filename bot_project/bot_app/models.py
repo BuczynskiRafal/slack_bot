@@ -45,23 +45,17 @@ class SlackUser(models.Model):
 
 
 class VotingResults(models.Model):
-    team_up_to_win = models.ForeignKey(
-        SlackUser, on_delete=models.RESTRICT, related_name="team_up_to_win", null=True
+    voted_user = models.ForeignKey(
+        SlackUser, on_delete=models.RESTRICT, related_name="voted_user", null=True
     )
     points_team_up_to_win = models.IntegerField(default=0)
-    act_to_deliver = models.ForeignKey(
-        SlackUser, on_delete=models.RESTRICT, related_name="act_to_deliver", null=True
-    )
     points_act_to_deliver = models.IntegerField(default=0)
-    disrupt_to_grow = models.ForeignKey(
-        SlackUser, on_delete=models.RESTRICT, related_name="disrupt_to_grow", null=True
-    )
     points_disrupt_to_grow = models.IntegerField(default=0)
     voting_user_id = models.ForeignKey(
         SlackUser, on_delete=models.RESTRICT, related_name="voting_user_id", null=True
     )
-    ts = models.FloatField(null=True)
-    # time  = models.
+    created = models.DateTimeField(verbose_name="Created", auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"Class: {self.__class__.__name__}, user: {self.voting_user_id}."

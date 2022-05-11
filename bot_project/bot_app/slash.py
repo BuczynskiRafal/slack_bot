@@ -34,11 +34,14 @@ def vote(request):
     if request.method == "POST":
         data = prepare_data(request=request)
         user_id = data.get("user_id")
+        trigger_id = data["trigger_id"]
 
         vote_form = DialogWidow(channel=user_id)
         message = vote_form.vote_message()
-        response = CLIENT.chat_postMessage(**message, text="Zagłosuj na użytkownika.")
-        vote_form.timestamp = response['ts']
+        response = CLIENT.views_open(
+            trigger_id=trigger_id,
+            view=message
+        )
         return HttpResponse(status=200)
 
 
@@ -48,38 +51,41 @@ def interactive(request):
     if request.method == "POST":
         data = json.loads(request.POST["payload"])
         voting_user_id = data["user"].get("id")
+        # print(data["view"])
+        # for i in data["view"]["blocks"]:
+        #     print(i)
+
+        for k, v in data["view"].items():
+            print(k, v)
 
         """Prepare data (voting results) for saving in database. """
         voting_results = {}
         counter = 0
-        for idx in data["message"]["blocks"]:
-            if idx["type"] == "actions":
+        for idx in data["view"]["blocks"]:
+            if idx["type"] == "input":
                 voting_results[counter] = {"block_id": idx["block_id"]}
                 counter += 1
-
-        for counter, (block, values) in enumerate(data["state"]["values"].items()):
+        print(voting_results)
+        for counter, (block, values) in enumerate(data["view"]["state"]["values"].items()):
             if block == voting_results[counter]["block_id"]:
                 try:
                     voting_results[counter]["block_name"] = CATEGORIES[counter]
+                    if
                     voting_results[counter]["selected_user"] = values["actionId-0"][
                         "selected_user"
                     ]
                     voting_results[counter]["points"] = int(
                         values["actionId-1"]["selected_option"]["text"]["text"]
                     )
-                    voting_results[counter]["selected_user_name"] = get_user(
-                        slack_id=voting_results[counter]["selected_user"]
-                    ).name
                 except TypeError as e:
                     voting_results[counter]["points"] = 0
                     print(e)
-
-        """przycisk wyślij,  jeśli nie ma w request akcji wyslij nie podejmuj dalszego działania"""
+        print(voting_results)
 
         """Check if data is validate. If not send message contain errors."""
         voting_user = get_user(slack_id=voting_user_id)
         response_message = DialogWidow(channel=voting_user_id)
-        name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+        name = f"*Hello {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
 
         if not validate(voting_results=voting_results, voting_user_id=voting_user_id):
 
@@ -126,7 +132,7 @@ def check_points(request):
 
     points_message = DialogWidow(channel=voting_user_id)
 
-    name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+    name = f"*Hello {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
     text = (
         f"Twoje punkty w kategorii 'Team up to win' to {data['points_team_up_to_win']}.\n"
         f"Twoje punkty w kategorii 'Act to deliver' to {data['points_act_to_deliver']}.\n"
@@ -157,7 +163,7 @@ def call_info(request):
     data = prepare_data(request=request)
     user_id = data.get("user_id")
 
-    name = f"*Cześć {get_user(user_id).name.split('.')[0].capitalize()}.*\n"
+    name = f"*Hello {get_user(user_id).name.split('.')[0].capitalize()}.*\n"
     info_message = DialogWidow(channel=user_id)
     message = info_message.about_message(name)
     CLIENT.chat_postMessage(**message, text='See information about honor program')
@@ -225,3 +231,13 @@ def slack_events(
     # default case
     return HttpResponse("")
 
+
+
+"""
+wybór użytkownika - wybiera się tylko jednego użytkownika 
+rozdaje sie 3 punkty w trzech kategoriach 
+tylko przycisk submit wysyła formularz 
+ts nie będzie potrzebny w tabeli 
+dodać kolumnę z datą
+wiadomość o oddanych ŋlosach na użytkownika pojawia się kolejnego dnia.
+"""
