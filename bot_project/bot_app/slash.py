@@ -3,6 +3,7 @@ The module contains a collection of methods that
 support voting in the award program.
 """
 import json
+import datetime
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, Http404
@@ -10,7 +11,7 @@ from django.core.exceptions import PermissionDenied
 
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 from .message import DialogWidow
-from .scrap_users import get_user
+from .scrap_users import get_user, create_users_from_slack
 from .utils import (
     calculate_points,
     create_text,
@@ -51,12 +52,6 @@ def interactive(request):
     if request.method == "POST":
         data = json.loads(request.POST["payload"])
         voting_user_id = data["user"].get("id")
-        # print(data["view"])
-        # for i in data["view"]["blocks"]:
-        #     print(i)
-
-        for k, v in data["view"].items():
-            print(k, v)
 
         """Prepare data (voting results) for saving in database. """
         voting_results = {}
@@ -65,34 +60,29 @@ def interactive(request):
             if idx["type"] == "input":
                 voting_results[counter] = {"block_id": idx["block_id"]}
                 counter += 1
-        print(voting_results)
+
         for counter, (block, values) in enumerate(data["view"]["state"]["values"].items()):
             if block == voting_results[counter]["block_id"]:
                 try:
-                    voting_results[counter]["block_name"] = CATEGORIES[counter]
-                    if
-                    voting_results[counter]["selected_user"] = values["actionId-0"][
-                        "selected_user"
-                    ]
-                    voting_results[counter]["points"] = int(
-                        values["actionId-1"]["selected_option"]["text"]["text"]
-                    )
+                    if 'user_select-action' in values:
+                        voting_results[counter]["block_name"] = "User select"
+                        voting_results[counter]["selected_user"] = values["user_select-action"]["selected_user"]
+                    else:
+                        voting_results[counter]["block_name"] = CATEGORIES[counter-1]
+                        voting_results[counter]["points"] = int(values["static_select-action"]["selected_option"]["text"]["text"])
                 except TypeError as e:
                     voting_results[counter]["points"] = 0
                     print(e)
-        print(voting_results)
 
         """Check if data is validate. If not send message contain errors."""
         voting_user = get_user(slack_id=voting_user_id)
         response_message = DialogWidow(channel=voting_user_id)
-        name = f"*Hello {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+        name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
 
         if not validate(voting_results=voting_results, voting_user_id=voting_user_id):
-
             text = error_message(voting_results, voting_user_id)
             message = response_message.check_points_message(name=name, text=text)
             response = CLIENT.chat_postMessage(**message, text='Check your votes.')
-            response_message.timestamp = response["ts"]
             return HttpResponse(status=200)
 
         else:
@@ -101,7 +91,6 @@ def interactive(request):
             text = create_text(voting_user_id=voting_user_id)
             message = response_message.check_points_message(name=name, text=text)
             response = CLIENT.chat_postMessage(**message, text='Check your votes.')
-            response_message.timestamp = response["ts"]
             return HttpResponse(status=200)
 
 
@@ -115,7 +104,10 @@ def check_votes(request):
         data = prepare_data(request=request)
         voting_user_id = data.get("user_id")
         text = create_text(voting_user_id=voting_user_id)
-        CLIENT.chat_postMessage(channel=voting_user_id, text=text)
+        name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+        response_message = DialogWidow(channel=voting_user_id)
+        message = response_message.check_points_message(name=name, text=text)
+        CLIENT.chat_postMessage(**message, text='Check your votes.')
         return HttpResponse(status=200)
 
 
@@ -126,17 +118,15 @@ def check_points(request):
     @return:
     """
     data = prepare_data(request=request)
-    voting_user_id = data.get("user_id")
+    voted_user = data.get("user_id")
     current_month = get_start_end_month()
-    data = calculate_points(voting_user_id, ts_start=current_month[0], ts_end=current_month[1])
-
-    points_message = DialogWidow(channel=voting_user_id)
-
-    name = f"*Hello {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+    points = calculate_points(voted_user=voted_user, start=current_month[0], end=current_month[1])
+    points_message = DialogWidow(channel=voted_user)
+    name = f"*Cześć {get_user(voted_user).name.split('.')[0].capitalize()}.*\n"
     text = (
-        f"Twoje punkty w kategorii 'Team up to win' to {data['points_team_up_to_win']}.\n"
-        f"Twoje punkty w kategorii 'Act to deliver' to {data['points_act_to_deliver']}.\n"
-        f"Twoje punkty w kategorii 'Disrupt to grow' to {data['points_disrupt_to_grow']}."
+        f"Twoje punkty w kategorii 'Team up to win' to {points['points_team_up_to_win']}.\n"
+        f"Twoje punkty w kategorii 'Act to deliver' to {points['points_act_to_deliver']}.\n"
+        f"Twoje punkty w kategorii 'Disrupt to grow' to {points['points_disrupt_to_grow']}."
     )
     message = points_message.check_points_message(name=name, text=text)
     CLIENT.chat_postMessage(**message, text='Check the points you get in current month')
@@ -152,14 +142,17 @@ def check_winner_month(request):
     data = prepare_data(request=request)
     voting_user_id = data.get("user_id")
     current_month = get_start_end_month()
-    text = winner(ts_start=current_month[0], ts_end=current_month[1])
-    CLIENT.chat_postMessage(channel=voting_user_id, text=text)
+    message = DialogWidow(channel=voting_user_id)
+    name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+    text = winner(start=current_month[0], end=current_month[1])
+    message = message.check_points_message(name=name, text=text)
+    CLIENT.chat_postMessage(**message, text="Check winner month.")
     return HttpResponse(status=200)
 
 
 @csrf_exempt
-def call_info(request):
-    """Supports the slash method - '/program-wyroznien'."""
+def about(request):
+    """Supports the slash method - '/about'."""
     data = prepare_data(request=request)
     user_id = data.get("user_id")
 
@@ -234,10 +227,5 @@ def slack_events(
 
 
 """
-wybór użytkownika - wybiera się tylko jednego użytkownika 
-rozdaje sie 3 punkty w trzech kategoriach 
-tylko przycisk submit wysyła formularz 
-ts nie będzie potrzebny w tabeli 
-dodać kolumnę z datą
 wiadomość o oddanych ŋlosach na użytkownika pojawia się kolejnego dnia.
 """

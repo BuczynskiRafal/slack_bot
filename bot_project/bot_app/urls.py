@@ -1,13 +1,13 @@
 from django.urls import path
 from .reminders import *
 from .events import slack_events
-from .slash import vote, interactive, check_votes, check_points, check_winner_month, call_info
+from .slash import vote, interactive, check_votes, check_points, check_winner_month, about
 
 app_name = 'bot_app'
 
 urlpatterns = [
     path('event/hook/', slack_events, name='slack_events'),
-    path('program-wyroznien', call_info, name='call_info'),
+    path('about', about, name='about'),
     path('vote', vote, name='vote'),
     path('interactive', interactive, name='interactive'),
     path('check-votes', check_votes, name='check_votes'),

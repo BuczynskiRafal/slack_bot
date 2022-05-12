@@ -461,7 +461,7 @@ class DialogWidow:
                 "elements": [
                     {
                         "type": "plain_text",
-                        "text": "Remember:\n * You cannot vote for yourself.\n * You must give out exactly 3 points in total.\n* You can learn more about honors program using /program-wyroznien",
+                        "text": "Remember:\n * You cannot vote for yourself.\n * You must give out exactly 3 points in total.\n* You can learn more about honors program using /about",
                         "emoji": True
                     }
                 ]
