@@ -6,6 +6,7 @@ from django.http import HttpResponse, Http404
 from django.core.exceptions import PermissionDenied
 from .message import DialogWidow
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
+from .scrap_users import get_user
 
 
 CLIENT = settings.CLIENT
@@ -22,8 +23,9 @@ def send_info(channel, user):
     if user in info_channels[channel]:
         return
 
+    name = f"*Cześć {get_user(user).name.split('.')[0].capitalize()}.*\n"
     info = DialogWidow(channel)
-    message = info.get_about_message()
+    message = info.about_message(name=name)
     response = CLIENT.chat_postMessage(**message, text='pw_bot')
     info.timestamp = response["ts"]
     info_channels[channel][user] = info

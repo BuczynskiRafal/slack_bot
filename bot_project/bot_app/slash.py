@@ -3,7 +3,6 @@ The module contains a collection of methods that
 support voting in the award program.
 """
 import json
-import datetime
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, Http404
@@ -223,7 +222,6 @@ def slack_events(
 
     # default case
     return HttpResponse("")
-
 
 
 """
