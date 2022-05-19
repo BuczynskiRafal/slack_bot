@@ -26,7 +26,7 @@ def send_info(channel, user):
     name = f"*Cześć {get_user(user).name.split('.')[0].capitalize()}.*\n"
     info = DialogWidow(channel)
     message = info.about_message(name=name)
-    response = CLIENT.chat_postMessage(**message, text='pw_bot')
+    response = CLIENT.chat_postMessage(**message, text="pw_bot")
     info.timestamp = response["ts"]
     info_channels[channel][user] = info
 
@@ -39,7 +39,7 @@ def check_if_searched_words(message):
 
 @slack_events_adapter.on("message")
 def message(payload: json):
-    """ Respond to the phrases "program", "wyróżnień", "wyroznien".
+    """Respond to the phrases "program", "wyróżnień", "wyroznien".
         The bot adds a comment informing that it is
         sending a message about the highlight program in a private message.
         The bot sends a message with the content specified in the "about" file.

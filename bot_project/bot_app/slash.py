@@ -10,7 +10,7 @@ from django.core.exceptions import PermissionDenied
 
 from .adapter_slackclient import slack_events_adapter, SLACK_VERIFICATION_TOKEN
 from .message import DialogWidow
-from .scrap_users import get_user, create_users_from_slack
+from .scrap_users import get_user
 from .utils import (
     calculate_points,
     create_text,
@@ -38,10 +38,7 @@ def vote(request):
 
         vote_form = DialogWidow(channel=user_id)
         message = vote_form.vote_message()
-        response = CLIENT.views_open(
-            trigger_id=trigger_id,
-            view=message
-        )
+        response = CLIENT.views_open(trigger_id=trigger_id, view=message)
         return HttpResponse(status=200)
 
 
@@ -60,15 +57,23 @@ def interactive(request):
                 voting_results[counter] = {"block_id": idx["block_id"]}
                 counter += 1
 
-        for counter, (block, values) in enumerate(data["view"]["state"]["values"].items()):
+        for counter, (block, values) in enumerate(
+            data["view"]["state"]["values"].items()
+        ):
             if block == voting_results[counter]["block_id"]:
                 try:
-                    if 'user_select-action' in values:
+                    if "user_select-action" in values:
                         voting_results[counter]["block_name"] = "User select"
-                        voting_results[counter]["selected_user"] = values["user_select-action"]["selected_user"]
+                        voting_results[counter]["selected_user"] = values[
+                            "user_select-action"
+                        ]["selected_user"]
                     else:
-                        voting_results[counter]["block_name"] = CATEGORIES[counter-1]
-                        voting_results[counter]["points"] = int(values["static_select-action"]["selected_option"]["text"]["text"])
+                        voting_results[counter]["block_name"] = CATEGORIES[counter - 1]
+                        voting_results[counter]["points"] = int(
+                            values["static_select-action"]["selected_option"]["text"][
+                                "text"
+                            ]
+                        )
                 except TypeError as e:
                     voting_results[counter]["points"] = 0
                     print(e)
@@ -81,15 +86,18 @@ def interactive(request):
         if not validate(voting_results=voting_results, voting_user_id=voting_user_id):
             text = error_message(voting_results, voting_user_id)
             message = response_message.check_points_message(name=name, text=text)
-            response = CLIENT.chat_postMessage(**message, text='Check your votes.')
+            response = CLIENT.chat_postMessage(**message, text="Check your votes.")
             return HttpResponse(status=200)
 
         else:
             """Save voting results in database and send message with voting results."""
-            save_votes(voting_results=voting_results, voting_user=voting_user)
-            text = create_text(voting_user_id=voting_user_id)
+            save_votes(voting_results=voting_results, voting_user=voting_user_id)
+            text = create_text(
+                voting_user_id=voting_user_id,
+                voted_user=voting_results[0]["selected_user"],
+            )
             message = response_message.check_points_message(name=name, text=text)
-            response = CLIENT.chat_postMessage(**message, text='Check your votes.')
+            response = CLIENT.chat_postMessage(**message, text="Check your votes.")
             return HttpResponse(status=200)
 
 
@@ -102,11 +110,11 @@ def check_votes(request):
     if request.method == "POST":
         data = prepare_data(request=request)
         voting_user_id = data.get("user_id")
-        text = create_text(voting_user_id=voting_user_id)
+        text = create_text(voting_user_id=voting_user_id, )
         name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
         response_message = DialogWidow(channel=voting_user_id)
         message = response_message.check_points_message(name=name, text=text)
-        CLIENT.chat_postMessage(**message, text='Check your votes.')
+        CLIENT.chat_postMessage(**message, text="Check your votes.")
         return HttpResponse(status=200)
 
 
@@ -119,7 +127,9 @@ def check_points(request):
     data = prepare_data(request=request)
     voted_user = data.get("user_id")
     current_month = get_start_end_month()
-    points = calculate_points(voted_user=voted_user, start=current_month[0], end=current_month[1])
+    points = calculate_points(
+        voted_user=voted_user, start=current_month[0], end=current_month[1]
+    )
     points_message = DialogWidow(channel=voted_user)
     name = f"*Cześć {get_user(voted_user).name.split('.')[0].capitalize()}.*\n"
     text = (
@@ -128,7 +138,7 @@ def check_points(request):
         f"Twoje punkty w kategorii 'Disrupt to grow' to {points['points_disrupt_to_grow']}."
     )
     message = points_message.check_points_message(name=name, text=text)
-    CLIENT.chat_postMessage(**message, text='Check the points you get in current month')
+    CLIENT.chat_postMessage(**message, text="Check the points you get in current month")
     return HttpResponse(status=200)
 
 
@@ -158,7 +168,7 @@ def about(request):
     name = f"*Hello {get_user(user_id).name.split('.')[0].capitalize()}.*\n"
     info_message = DialogWidow(channel=user_id)
     message = info_message.about_message(name)
-    CLIENT.chat_postMessage(**message, text='See information about honor program')
+    CLIENT.chat_postMessage(**message, text="See information about honor program")
     return HttpResponse(status=200)
 
 

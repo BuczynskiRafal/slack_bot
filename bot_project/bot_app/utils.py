@@ -173,13 +173,14 @@ def save_votes(voting_results: dict, voting_user: str) -> None:
     @return: None
     """
     current_month = get_start_end_month()
-    desc = VotingResults.objects.filter(voting_user_id=voting_user).exists()
+    desc = VotingResults.objects.filter(
+        voting_user_id=get_user(voting_user),
+        voted_user=get_user(voting_results[0]["selected_user"]),
+        created__range=(current_month[0], current_month[1]),
+    ).exists()
     """If voting user not in db, create object."""
     try:
         if not desc:
-            print(voting_results[0]["selected_user"])
-            print(get_user(voting_results[0]["selected_user"]))
-
             voting_res = VotingResults.objects.create(
                 voting_user_id=get_user(voting_user),
                 voted_user=get_user(voting_results[0]["selected_user"]),
@@ -189,7 +190,6 @@ def save_votes(voting_results: dict, voting_user: str) -> None:
             )
             voting_res.save()
     except Exception as e:
-        print('first')
         print(e)
 
     """If user in db, update object.
@@ -197,22 +197,18 @@ def save_votes(voting_results: dict, voting_user: str) -> None:
     even if the form not complete."""
     if desc:
         voting_res = VotingResults.objects.get(
-            voting_user_id=voting_user,
+            voting_user_id=get_user(voting_user),
+            voted_user=get_user(voting_results[0]["selected_user"]),
             created__range=(current_month[0], current_month[1]),
         )
         try:
-            voting_res.voted_user = get_user(
-                slack_id=voting_results[0]["selected_user"]
-            )
             voting_res.points_team_up_to_win = voting_results[1]["points"]
             voting_res.points_act_to_deliver = voting_results[2]["points"]
             voting_res.points_disrupt_to_grow = voting_results[3]["points"]
         except Exception as e:
             print(e)
-
         voting_res.save(
             update_fields=[
-                "voted_user",
                 "points_team_up_to_win",
                 "points_act_to_deliver",
                 "points_disrupt_to_grow",
@@ -234,13 +230,14 @@ def prepare_data(request):
     return data
 
 
-def create_text(voting_user_id: str) -> str:
+def create_text(voting_user_id: str, voted_user: str) -> str:
     """Create a message containing information on how the user voted.
     @return: str : information on how the user voted
     """
     current_month = get_start_end_month()
     voting_results = VotingResults.objects.get(
         voting_user_id=get_user(slack_id=voting_user_id),
+        voted_user=get_user(slack_id=voted_user),
         created__range=(current_month[0], current_month[1]),
     )
 

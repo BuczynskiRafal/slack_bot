@@ -32,7 +32,7 @@ def get_all_users():
     return list(SlackUser.objects.all())
 
 
-async def send_reminder_at_end_month():
+async def send_reminder(delta: int):
     """Get all users from db"""
     users = await get_all_users()
 
@@ -50,17 +50,26 @@ async def send_reminder_at_end_month():
         for user in users:
             try:
                 response = CLIENT.chat_scheduleMessage(
-                    channel=user.slack_id, text=reminder_text, post_at=int(post_at.timestamp())
+                    channel=user.slack_id,
+                    text=reminder_text,
+                    post_at=int(post_at.timestamp()),
                 ).data
                 logger.info(response)
             except SlackApiError as e:
                 print(e)
-            except KeyboardInterrupt:
-                pass
+            except KeyboardInterrupt as e:
+                print(e)
 
+
+"""Send voting reminders regularly."""
 try:
     loop_send_reminder_at_end_month = asyncio.get_event_loop()
-    loop_send_reminder_at_end_month.run_until_complete(send_reminder_at_end_month())
+
+    """Send a reminder in the middle of the month"""
+    loop_send_reminder_at_end_month.run_until_complete(send_reminder(delta=15))
+
+    """Send a reminder on the penultimate day of the month."""
+    loop_send_reminder_at_end_month.run_until_complete(send_reminder(delta=1))
 except Exception as e:
     print(e)
 

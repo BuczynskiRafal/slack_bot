@@ -25,28 +25,16 @@ class DialogWidow:
 
     voting_form = {
         "type": "modal",
-        "title": {
-            "type": "plain_text",
-            "text": "Voting Bot",
-            "emoji": True
-        },
-        "submit": {
-            "type": "plain_text",
-            "text": "Submit",
-            "emoji": True
-        },
-        "close": {
-            "type": "plain_text",
-            "text": "Cancel",
-            "emoji": True
-        },
+        "title": {"type": "plain_text", "text": "Voting Bot", "emoji": True},
+        "submit": {"type": "plain_text", "text": "Submit", "emoji": True},
+        "close": {"type": "plain_text", "text": "Cancel", "emoji": True},
         "blocks": [
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "Here is the form where you can vote in the awards program."
-                }
+                    "text": "Here is the form where you can vote in the awards program.",
+                },
             },
             {
                 "type": "input",
@@ -55,15 +43,11 @@ class DialogWidow:
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Select users",
-                        "emoji": True
+                        "emoji": True,
                     },
-                    "action_id": "user_select-action"
+                    "action_id": "user_select-action",
                 },
-                "label": {
-                    "type": "plain_text",
-                    "text": "Select a user",
-                    "emoji": True
-                }
+                "label": {"type": "plain_text", "text": "Select a user", "emoji": True},
             },
             {
                 "type": "input",
@@ -72,49 +56,33 @@ class DialogWidow:
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Select point amount",
-                        "emoji": True
+                        "emoji": True,
                     },
                     "options": [
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "0",
-                                "emoji": True
-                            },
-                            "value": "value-0"
+                            "text": {"type": "plain_text", "text": "0", "emoji": True},
+                            "value": "value-0",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "1",
-                                "emoji": True
-                            },
-                            "value": "value-1"
+                            "text": {"type": "plain_text", "text": "1", "emoji": True},
+                            "value": "value-1",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "2",
-                                "emoji": True
-                            },
-                            "value": "value-2"
+                            "text": {"type": "plain_text", "text": "2", "emoji": True},
+                            "value": "value-2",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "3",
-                                "emoji": True
-                            },
-                            "value": "value-3"
-                        }
+                            "text": {"type": "plain_text", "text": "3", "emoji": True},
+                            "value": "value-3",
+                        },
                     ],
-                    "action_id": "static_select-action"
+                    "action_id": "static_select-action",
                 },
                 "label": {
                     "type": "plain_text",
                     "text": "Category Team up to win",
-                    "emoji": True
-                }
+                    "emoji": True,
+                },
             },
             {
                 "type": "input",
@@ -123,49 +91,33 @@ class DialogWidow:
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Select point amount",
-                        "emoji": True
+                        "emoji": True,
                     },
                     "options": [
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "0",
-                                "emoji": True
-                            },
-                            "value": "value-0"
+                            "text": {"type": "plain_text", "text": "0", "emoji": True},
+                            "value": "value-0",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "1",
-                                "emoji": True
-                            },
-                            "value": "value-1"
+                            "text": {"type": "plain_text", "text": "1", "emoji": True},
+                            "value": "value-1",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "2",
-                                "emoji": True
-                            },
-                            "value": "value-2"
+                            "text": {"type": "plain_text", "text": "2", "emoji": True},
+                            "value": "value-2",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "3",
-                                "emoji": True
-                            },
-                            "value": "value-3"
-                        }
+                            "text": {"type": "plain_text", "text": "3", "emoji": True},
+                            "value": "value-3",
+                        },
                     ],
-                    "action_id": "static_select-action"
+                    "action_id": "static_select-action",
                 },
                 "label": {
                     "type": "plain_text",
                     "text": "Category Act to deliver",
-                    "emoji": True
-                }
+                    "emoji": True,
+                },
             },
             {
                 "type": "input",
@@ -174,64 +126,46 @@ class DialogWidow:
                     "placeholder": {
                         "type": "plain_text",
                         "text": "Select point amount",
-                        "emoji": True
+                        "emoji": True,
                     },
                     "options": [
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "0",
-                                "emoji": True
-                            },
-                            "value": "value-0"
+                            "text": {"type": "plain_text", "text": "0", "emoji": True},
+                            "value": "value-0",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "1",
-                                "emoji": True
-                            },
-                            "value": "value-1"
+                            "text": {"type": "plain_text", "text": "1", "emoji": True},
+                            "value": "value-1",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "2",
-                                "emoji": True
-                            },
-                            "value": "value-2"
+                            "text": {"type": "plain_text", "text": "2", "emoji": True},
+                            "value": "value-2",
                         },
                         {
-                            "text": {
-                                "type": "plain_text",
-                                "text": "3",
-                                "emoji": True
-                            },
-                            "value": "value-3"
-                        }
+                            "text": {"type": "plain_text", "text": "3", "emoji": True},
+                            "value": "value-3",
+                        },
                     ],
-                    "action_id": "static_select-action"
+                    "action_id": "static_select-action",
                 },
                 "label": {
                     "type": "plain_text",
                     "text": "Category Disrupt to grow",
-                    "emoji": True
-                }
+                    "emoji": True,
+                },
             },
-            {
-                "type": "divider"
-            },
+            {"type": "divider"},
             {
                 "type": "context",
                 "elements": [
                     {
                         "type": "plain_text",
                         "text": "Remember:\n * You cannot vote for yourself.\n * You must give out exactly 3 points in total.\n* You can learn more about honors program using /about",
-                        "emoji": True
+                        "emoji": True,
                     }
-                ]
-            }
-        ]
+                ],
+            },
+        ],
     }
 
     def __init__(self, channel) -> None:
@@ -264,9 +198,8 @@ class DialogWidow:
 
     def about_message(self, name) -> Dict:
         return self.message(
-            self.get_text(text=name),
-            self.get_text(text=self.about_text),
-            self.DIVIDER)
+            self.get_text(text=name), self.get_text(text=self.about_text), self.DIVIDER
+        )
 
     def check_points_message(self, name, text) -> Dict:
         """
@@ -275,7 +208,8 @@ class DialogWidow:
         return self.message(
             self.get_text(text=name),
             self.get_text(text=text),
-            self.DIVIDER,)
+            self.DIVIDER,
+        )
 
     def _get_reaction_task(self):
         checkmark = ":white_check_mark:"

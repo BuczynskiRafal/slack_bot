@@ -59,4 +59,3 @@ class VotingResults(models.Model):
 
     def __str__(self):
         return f"Class: {self.__class__.__name__}, user: {self.voting_user_id}."
-
