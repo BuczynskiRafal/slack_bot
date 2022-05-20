@@ -20,6 +20,7 @@ from .utils import (
     save_votes,
     get_start_end_month,
     winner,
+    get_name,
 )
 
 CLIENT = settings.CLIENT
@@ -81,7 +82,7 @@ def interactive(request):
         """Check if data is validate. If not send message contain errors."""
         voting_user = get_user(slack_id=voting_user_id)
         response_message = DialogWidow(channel=voting_user_id)
-        name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+        name = get_name(voting_user_id=voting_user_id)
 
         if not validate(voting_results=voting_results, voting_user_id=voting_user_id):
             text = error_message(voting_results, voting_user_id)
@@ -111,7 +112,7 @@ def check_votes(request):
         data = prepare_data(request=request)
         voting_user_id = data.get("user_id")
         text = create_text(voting_user_id=voting_user_id, )
-        name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+        name = get_name(voting_user_id=voting_user_id)
         response_message = DialogWidow(channel=voting_user_id)
         message = response_message.check_points_message(name=name, text=text)
         CLIENT.chat_postMessage(**message, text="Check your votes.")
@@ -131,7 +132,7 @@ def check_points(request):
         voted_user=voted_user, start=current_month[0], end=current_month[1]
     )
     points_message = DialogWidow(channel=voted_user)
-    name = f"*Cześć {get_user(voted_user).name.split('.')[0].capitalize()}.*\n"
+    name = get_name(voting_user_id=voted_user)
     text = (
         f"Twoje punkty w kategorii 'Team up to win' to {points['points_team_up_to_win']}.\n"
         f"Twoje punkty w kategorii 'Act to deliver' to {points['points_act_to_deliver']}.\n"
@@ -152,7 +153,7 @@ def check_winner_month(request):
     voting_user_id = data.get("user_id")
     current_month = get_start_end_month()
     message = DialogWidow(channel=voting_user_id)
-    name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+    name = get_name(voting_user_id=voting_user_id)
     text = winner(start=current_month[0], end=current_month[1])
     message = message.check_points_message(name=name, text=text)
     CLIENT.chat_postMessage(**message, text="Check winner month.")
@@ -170,10 +171,6 @@ def about(request):
     message = info_message.about_message(name)
     CLIENT.chat_postMessage(**message, text="See information about honor program")
     return HttpResponse(status=200)
-
-
-def send_reminder():
-    pass
 
 
 def render_json_response(request, data, status=None, support_jsonp=False):

@@ -27,9 +27,54 @@ def schedule_time(delta=1):
     )
 
 
+def start_month():
+    first_day = get_start_end_month()[0]
+    time = (first_day.replace(year=year, month=month) for year in range(first_day.year, first_day.year + 10) for month in range(1, 13))
+    return time
+
+
 @sync_to_async
 def get_all_users():
     return list(SlackUser.objects.all())
+
+
+async def send_winners_message():
+    """Get all users from db"""
+    users = await get_all_users()
+
+    first_day = get_start_end_month()[0]
+    time = (first_day.replace(year=year, month=month) for year in range(first_day.year, first_day.year + 10) for month in range(1, 13))
+    post_at = next(time)
+    while post_at <= datetime.now(tz=pytz.UTC):
+        post_at = next(time)
+
+    """Send message with information about voting results."""
+    message = ''
+    """Send message to all users in db."""
+    for user in users:
+        try:
+            response = CLIENT.chat_scheduleMessage(
+                channel=user.slack_id,
+                text=message,
+                post_at=int(post_at.timestamp()),
+            ).data
+            logger.info(response)
+        except SlackApiError as e:
+            print(e)
+        except KeyboardInterrupt as e:
+            print(e)
+
+"""Send voting results regularly."""
+try:
+    loop_send_winners_message = asyncio.get_event_loop()
+
+    """Send a reminder in the middle of the month"""
+    loop_send_winners_message.run_until_complete(send_winners_message())
+
+    """Send a reminder on the penultimate day of the month."""
+    loop_send_winners_message.run_until_complete(send_winners_message())
+except Exception as e:
+    print(e)
 
 
 async def send_reminder(delta: int):
@@ -76,34 +121,34 @@ except Exception as e:
 """Pierwszego dnia miesiąca podsumowanie głosów - wysłanie na główny kanał"""
 
 
-# async def send_as_schedule():
-#     while True:
-#         time_delta = timedelta(seconds=10)
-#         started = datetime.now() + timedelta(seconds=100)
-#         send = started + time_delta
-#         scheduled_time = started.time()
-#         schedule_timestamp = datetime.combine(send, scheduled_time).strftime('%s')
-#
-#         channel_id = "U03BKQMSU5D"
-#
-#         sleep = 15
-#         try:
-#             result = CLIENT.chat_scheduleMessage(
-#                 channel=channel_id,
-#                 text=f"Looking towards the future started: {started}, sendet: {send}, ",
-#                 post_at=schedule_timestamp
-#             )
-#             print(result)
-#             await asyncio.sleep(sleep)
-#             started = send
-#         except SlackApiError as e:
-#             print(e)
-#         except KeyboardInterrupt:
-#             pass
-#
-# loop = asyncio.get_event_loop()
-# try:
-#     asyncio.ensure_future(send_as_schedule())
-#     loop.run_forever()
-# except Exception as e:
-#     print(e)
+async def send_as_schedule():
+    while True:
+        time_delta = timedelta(seconds=10)
+        started = datetime.now() + timedelta(seconds=100)
+        send = started + time_delta
+        scheduled_time = started.time()
+        schedule_timestamp = datetime.combine(send, scheduled_time).strftime('%s')
+
+        channel_id = "U03BKQMSU5D"
+
+        sleep = 15
+        try:
+            result = CLIENT.chat_scheduleMessage(
+                channel=channel_id,
+                text=f"Looking towards the future started: {started}, sendet: {send}, ",
+                post_at=schedule_timestamp
+            )
+            print(result)
+            await asyncio.sleep(sleep)
+            started = send
+        except SlackApiError as e:
+            print(e)
+        except KeyboardInterrupt:
+            pass
+
+loop = asyncio.get_event_loop()
+try:
+    asyncio.ensure_future(send_as_schedule())
+    loop.run_forever()
+except Exception as e:
+    print(e)

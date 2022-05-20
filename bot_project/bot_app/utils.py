@@ -251,6 +251,10 @@ def create_text(voting_user_id: str, voted_user: str) -> str:
     return text
 
 
+def get_name(voting_user_id):
+    name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+    return name
+
 """
 1. Dodać logging
 2. Save wrzucuć w try except
