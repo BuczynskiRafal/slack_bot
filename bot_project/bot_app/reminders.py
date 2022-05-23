@@ -65,16 +65,16 @@ async def send_winners_message():
             print(e)
 
 """Send voting results regularly."""
-try:
-    loop_send_winners_message = asyncio.get_event_loop()
-
-    """Send a reminder in the middle of the month"""
-    loop_send_winners_message.run_until_complete(send_winners_message())
-
-    """Send a reminder on the penultimate day of the month."""
-    loop_send_winners_message.run_until_complete(send_winners_message())
-except Exception as e:
-    print(e)
+# try:
+#     loop_send_winners_message = asyncio.get_event_loop()
+#
+#     """Send a reminder in the middle of the month"""
+#     loop_send_winners_message.run_until_complete(send_winners_message())
+#
+#     """Send a reminder on the penultimate day of the month."""
+#     loop_send_winners_message.run_until_complete(send_winners_message())
+# except Exception as e:
+#     print(e)
 
 
 async def send_reminder(delta: int):
@@ -107,48 +107,47 @@ async def send_reminder(delta: int):
 
 
 """Send voting reminders regularly."""
-try:
-    loop_send_reminder_at_end_month = asyncio.get_event_loop()
-
-    """Send a reminder in the middle of the month"""
-    loop_send_reminder_at_end_month.run_until_complete(send_reminder(delta=15))
-
-    """Send a reminder on the penultimate day of the month."""
-    loop_send_reminder_at_end_month.run_until_complete(send_reminder(delta=1))
-except Exception as e:
-    print(e)
+# try:
+#     loop_send_reminder_at_end_month = asyncio.get_event_loop()
+#
+#     """Send a reminder in the middle of the month"""
+#     loop_send_reminder_at_end_month.run_until_complete(send_reminder(delta=15))
+#
+#     """Send a reminder on the penultimate day of the month."""
+#     loop_send_reminder_at_end_month.run_until_complete(send_reminder(delta=1))
+# except Exception as e:
+#     print(e)
 
 """Pierwszego dnia miesiąca podsumowanie głosów - wysłanie na główny kanał"""
 
+#
+# async def send_as_schedule():
+#     while True:
+#         time_delta = timedelta(seconds=10)
+#         started = datetime.now() + timedelta(seconds=100)
+#         send = started + time_delta
+#         scheduled_time = started.time()
+#         schedule_timestamp = datetime.combine(send, scheduled_time).strftime('%s')
+#
+#         channel_id = "U03BKQMSU5D"
+#
+#         sleep = 15
+#         try:
+#             result = CLIENT.chat_scheduleMessage(
+#                 channel=channel_id,
+#                 text=f"Looking towards the future started: {started}, sendet: {send}, ",
+#                 post_at=schedule_timestamp
+#             )
+#             await asyncio.sleep(sleep)
+#             started = send
+#         except SlackApiError as e:
+#             print(e)
+#         except KeyboardInterrupt:
+#             pass
 
-async def send_as_schedule():
-    while True:
-        time_delta = timedelta(seconds=10)
-        started = datetime.now() + timedelta(seconds=100)
-        send = started + time_delta
-        scheduled_time = started.time()
-        schedule_timestamp = datetime.combine(send, scheduled_time).strftime('%s')
-
-        channel_id = "U03BKQMSU5D"
-
-        sleep = 15
-        try:
-            result = CLIENT.chat_scheduleMessage(
-                channel=channel_id,
-                text=f"Looking towards the future started: {started}, sendet: {send}, ",
-                post_at=schedule_timestamp
-            )
-            print(result)
-            await asyncio.sleep(sleep)
-            started = send
-        except SlackApiError as e:
-            print(e)
-        except KeyboardInterrupt:
-            pass
-
-loop = asyncio.get_event_loop()
-try:
-    asyncio.ensure_future(send_as_schedule())
-    loop.run_forever()
-except Exception as e:
-    print(e)
+# loop = asyncio.get_event_loop()
+# try:
+#     asyncio.ensure_future(send_as_schedule())
+#     loop.run_forever()
+# except Exception as e:
+#     print(e)

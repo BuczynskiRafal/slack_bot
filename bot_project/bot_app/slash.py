@@ -111,7 +111,7 @@ def check_votes(request):
     if request.method == "POST":
         data = prepare_data(request=request)
         voting_user_id = data.get("user_id")
-        text = create_text(voting_user_id=voting_user_id, )
+        text = create_text(voting_user_id=voting_user_id)
         name = get_name(voting_user_id=voting_user_id)
         response_message = DialogWidow(channel=voting_user_id)
         message = response_message.check_points_message(name=name, text=text)

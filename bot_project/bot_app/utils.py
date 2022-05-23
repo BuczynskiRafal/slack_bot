@@ -230,23 +230,23 @@ def prepare_data(request):
     return data
 
 
-def create_text(voting_user_id: str, voted_user: str) -> str:
+def create_text(voting_user_id: str) -> str:
     """Create a message containing information on how the user voted.
     @return: str : information on how the user voted
     """
     current_month = get_start_end_month()
-    voting_results = VotingResults.objects.get(
+    voting_results = VotingResults.objects.filter(
         voting_user_id=get_user(slack_id=voting_user_id),
-        voted_user=get_user(slack_id=voted_user),
         created__range=(current_month[0], current_month[1]),
     )
-
-    text = (
-        f"Wybrano użytkownika {voting_results.voted_user.name}.\n"
-        f"W kategorii Team up to win przyznano {voting_results.points_team_up_to_win} punktów.\n"
-        f"W kategorii Act to deliver przyznano {voting_results.points_act_to_deliver} punktów.\n"
-        f"W kategorii Disrupt to grow przyznano {voting_results.points_disrupt_to_grow} punktów.\n"
-    )
+    text = ''
+    for vote in voting_results:
+        text += (
+            f"Użytkownikowi {vote.voted_user.name}.\n"
+            f"W kategorii Team up to win przyznano {vote.points_team_up_to_win} punktów.\n"
+            f"W kategorii Act to deliver przyznano {vote.points_act_to_deliver} punktów.\n"
+            f"W kategorii Disrupt to grow przyznano {vote.points_disrupt_to_grow} punktów.\n\n"
+        )
 
     return text
 
