@@ -39,6 +39,8 @@ def get_all_users():
     return list(SlackUser.objects.all())
 
 
+####################################
+
 async def send_winners_message():
     """Get all users from db"""
     users = await get_all_users()
@@ -80,11 +82,9 @@ try:
     logger.info('Sending voting results.')
     loop_send_winners_message = asyncio.get_event_loop()
 
-    """Send a reminder in the middle of the month"""
+    """"""
 #     loop_send_winners_message.run_until_complete(send_winners_message())
 
-    """Send a reminder on the penultimate day of the month."""
-#     loop_send_winners_message.run_until_complete(send_winners_message())
 except Exception as e:
     logger.error(f'{e}')
 

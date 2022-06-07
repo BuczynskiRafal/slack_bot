@@ -23,6 +23,8 @@ def calculate_points(voted_user, start: datetime, end: datetime) -> dict:
     @rtype: dict
     @return: dict with categories as keys and sum of point as value.
     """
+    logger.info('=' * 30)
+    logger.info(f'calculate_points')
     points = {
         "points_team_up_to_win": VotingResults.objects.filter(
             voted_user=get_user(voted_user), created__range=(start, end)
@@ -34,9 +36,13 @@ def calculate_points(voted_user, start: datetime, end: datetime) -> dict:
             voted_user=get_user(voted_user), created__range=(start, end)
         ).aggregate(Sum("points_disrupt_to_grow"))["points_disrupt_to_grow__sum"],
     }
+    logger.info('Query was successful.')
+
     for k, v in points.items():
         if v is None:
             points[k] = 0
+    logger.info('Points was calculated')
+    logger.info('=' * 30)
     return points
 
 
@@ -49,11 +55,16 @@ def total_points(start: datetime, end: datetime) -> dict:
     @rtype: dict
     @return : dict contain sum of point for all slack users.
     """
+    logger.info('=' * 30)
+    logger.info(f'total_points')
     users = get_users()
-    return {
+    points = {
         user.slack_id: calculate_points(voted_user=user.slack_id, start=start, end=end)
         for user in users
     }
+    logger.info('Points was calculated')
+    logger.info('=' * 30)
+    return points
 
 
 def winner(start: datetime, end: datetime) -> str:
@@ -65,7 +76,8 @@ def winner(start: datetime, end: datetime) -> str:
     @rtype: str
     @return: message contain information about winners
     """
-
+    logger.info('=' * 30)
+    logger.info(f'winner')
     """Collect data form database."""
     users_points = total_points(start=start, end=end)
     attributes = (
