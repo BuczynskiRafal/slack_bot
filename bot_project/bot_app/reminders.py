@@ -11,6 +11,7 @@ from .utils import get_start_end_month
 from .models import SlackUser
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 CLIENT = settings.CLIENT
 
 penultimate_day = get_start_end_month()[1] - timedelta(days=1)
@@ -48,33 +49,47 @@ async def send_winners_message():
     while post_at <= datetime.now(tz=pytz.UTC):
         post_at = next(time)
 
+    logger.info('The schedule time has been prepared correctly.')
+
     """Send message with information about voting results."""
     message = ''
     """Send message to all users in db."""
-    for user in users:
-        try:
-            response = CLIENT.chat_scheduleMessage(
-                channel=user.slack_id,
-                text=message,
-                post_at=int(post_at.timestamp()),
-            ).data
-            logger.info(response)
-        except SlackApiError as e:
-            print(e)
-        except KeyboardInterrupt as e:
-            print(e)
+    try:
+        for user in users:
+            try:
+                logger.info('Creating scheduled messages')
+                response = CLIENT.chat_scheduleMessage(
+                    channel=user.slack_id,
+                    text=message,
+                    post_at=int(post_at.timestamp()),
+                ).data
+                logger.info('Message has been send successfully.')
+
+                logger.info(f'{response}')
+
+            except SlackApiError as e:
+                logger.error(f'{e}')
+            except KeyboardInterrupt as e:
+                logger.error(f'{e}')
+    except Exception as e:
+        logger.error(f'{e}')
+
 
 """Send voting results regularly."""
-# try:
-#     loop_send_winners_message = asyncio.get_event_loop()
-#
-#     """Send a reminder in the middle of the month"""
+try:
+    logger.info('Sending voting results.')
+    loop_send_winners_message = asyncio.get_event_loop()
+
+    """Send a reminder in the middle of the month"""
 #     loop_send_winners_message.run_until_complete(send_winners_message())
-#
-#     """Send a reminder on the penultimate day of the month."""
+
+    """Send a reminder on the penultimate day of the month."""
 #     loop_send_winners_message.run_until_complete(send_winners_message())
-# except Exception as e:
-#     print(e)
+except Exception as e:
+    logger.error(f'{e}')
+
+
+############################################
 
 
 async def send_reminder(delta: int):
@@ -86,37 +101,49 @@ async def send_reminder(delta: int):
     post_at = next(end_month)
     while post_at <= datetime.now(tz=pytz.UTC):
         post_at = next(end_month)
+    logger.info('The schedule time has been prepared correctly.')
 
     """Open file contain information about awards program."""
     with open("pw_reminder", encoding="UTF8") as file:
         reminder_text = file.read()
 
         """Send message to all users in db."""
-        for user in users:
-            try:
-                response = CLIENT.chat_scheduleMessage(
-                    channel=user.slack_id,
-                    text=reminder_text,
-                    post_at=int(post_at.timestamp()),
-                ).data
-                logger.info(response)
-            except SlackApiError as e:
-                print(e)
-            except KeyboardInterrupt as e:
-                print(e)
+        try:
+            for user in users:
+                try:
+                    logger.info('Creating scheduled messages')
+                    response = CLIENT.chat_scheduleMessage(
+                        channel=user.slack_id,
+                        text=reminder_text,
+                        post_at=int(post_at.timestamp()),
+                    ).data
+                    logger.info('Message has been send successfully.')
+
+                    logger.info(response)
+                except SlackApiError as e:
+                    logger.error(f'{e}')
+                except KeyboardInterrupt as e:
+                    logger.error(f'{e}')
+        except Exception as e:
+            logger.error(f'{e}')
 
 
 """Send voting reminders regularly."""
-# try:
-#     loop_send_reminder_at_end_month = asyncio.get_event_loop()
-#
-#     """Send a reminder in the middle of the month"""
+try:
+    logger.info('Sending voting reminders.')
+    loop_send_reminder_at_end_month = asyncio.get_event_loop()
+
+    """Send a reminder in the middle of the month"""
 #     loop_send_reminder_at_end_month.run_until_complete(send_reminder(delta=15))
-#
-#     """Send a reminder on the penultimate day of the month."""
+
+    """Send a reminder on the penultimate day of the month."""
 #     loop_send_reminder_at_end_month.run_until_complete(send_reminder(delta=1))
-# except Exception as e:
-#     print(e)
+except Exception as e:
+    logger.error(f'{e}')
+
+
+##################################################################################
+
 
 """Pierwszego dnia miesiąca podsumowanie głosów - wysłanie na główny kanał"""
 

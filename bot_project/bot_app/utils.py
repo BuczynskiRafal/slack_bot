@@ -1,9 +1,14 @@
 import datetime
 import calendar
+import logging
+
 import pytz
 from django.db.models import Sum
 from .models import VotingResults
 from .scrap_users import get_user, get_users
+
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
 
 CATEGORIES = ["Team up to win", "Act to deliver", "Disrupt to grow"]
 
@@ -172,15 +177,27 @@ def save_votes(voting_results: dict, voting_user: str) -> None:
     If exist update object with data form slack voting form.
     @return: None
     """
+    logger.info('=' * 30)
+    logger.info('save_votes')
     current_month = get_start_end_month()
-    desc = VotingResults.objects.filter(
-        voting_user_id=get_user(voting_user),
-        voted_user=get_user(voting_results[0]["selected_user"]),
-        created__range=(current_month[0], current_month[1]),
-    ).exists()
+
+    desc = ''
+    logging.info(f'{desc}')
+    try:
+        desc = VotingResults.objects.filter(
+            voting_user_id=get_user(voting_user),
+            voted_user=get_user(voting_results[0]["selected_user"]),
+            created__range=(current_month[0], current_month[1]),
+        ).exists()
+        logging.info(f'{desc}')
+    except Exception as e:
+        logger.error(f'{e}')
+        logger.info('=' * 30)
+
     """If voting user not in db, create object."""
     try:
         if not desc:
+            logger.info('Starting create user object.')
             voting_res = VotingResults.objects.create(
                 voting_user_id=get_user(voting_user),
                 voted_user=get_user(voting_results[0]["selected_user"]),
@@ -188,57 +205,93 @@ def save_votes(voting_results: dict, voting_user: str) -> None:
                 points_act_to_deliver=voting_results[2]["points"],
                 points_disrupt_to_grow=voting_results[3]["points"],
             )
+            logger.info(f'{voting_res}')
             voting_res.save()
     except Exception as e:
-        print(e)
+        logger.error(f'{e}')
+        logger.info('=' * 30)
 
     """If user in db, update object.
     The reason for this is that saving all data form form, 
     even if the form not complete."""
-    if desc:
-        voting_res = VotingResults.objects.get(
-            voting_user_id=get_user(voting_user),
-            voted_user=get_user(voting_results[0]["selected_user"]),
-            created__range=(current_month[0], current_month[1]),
-        )
-        try:
-            voting_res.points_team_up_to_win = voting_results[1]["points"]
-            voting_res.points_act_to_deliver = voting_results[2]["points"]
-            voting_res.points_disrupt_to_grow = voting_results[3]["points"]
-        except Exception as e:
-            print(e)
-        voting_res.save(
-            update_fields=[
-                "points_team_up_to_win",
-                "points_act_to_deliver",
-                "points_disrupt_to_grow",
-            ]
-        )
+    try:
+        if desc:
+            logger.info('Updating user object.')
+            voting_res = VotingResults.objects.get(
+                voting_user_id=get_user(voting_user),
+                voted_user=get_user(voting_results[0]["selected_user"]),
+                created__range=(current_month[0], current_month[1]),
+            )
+            logger.info(f'{voting_res}')
+            try:
+                voting_res.points_team_up_to_win = voting_results[1]["points"]
+                voting_res.points_act_to_deliver = voting_results[2]["points"]
+                voting_res.points_disrupt_to_grow = voting_results[3]["points"]
+                logger.info(f'{voting_res}')
+            except Exception as e:
+                logger.error(f'{e}')
+                logger.info('=' * 30)
+            voting_res.save(
+                update_fields=[
+                    "points_team_up_to_win",
+                    "points_act_to_deliver",
+                    "points_disrupt_to_grow",
+                ]
+            )
+    except Exception as e:
+        logger.error(f'{e}')
+        logger.info('=' * 30)
 
 
 def prepare_data(request):
     """Decode data from request.
     @return: dict
     """
+    logger.info('=' * 30)
+    logger.info('prepare_data')
     decode_data = request.body.decode("utf-8")
 
     data = {}
-    params = [param for param in decode_data.split("&")]
-    for attributes in params:
-        item = attributes.split("=")
-        data[item[0]] = item[1]
+    try:
+        logger.info('Preparing data.')
+        params = [param for param in decode_data.split("&")]
+        for attributes in params:
+            item = attributes.split("=")
+            data[item[0]] = item[1]
+    except Exception as e:
+        logger.error(f'{e}')
+        logger.info('=' * 30)
+    logger.info('Data has been created successfully.')
+    logger.info('=' * 30)
     return data
 
 
-def create_text(voting_user_id: str) -> str:
+def create_text(voting_user_id: str, voted_user=None) -> str:
     """Create a message containing information on how the user voted.
     @return: str : information on how the user voted
     """
+    logging.info('=' * 30)
+    logging.info('create_text')
     current_month = get_start_end_month()
-    voting_results = VotingResults.objects.filter(
-        voting_user_id=get_user(slack_id=voting_user_id),
-        created__range=(current_month[0], current_month[1]),
-    )
+    voting_results = ''
+    try:
+        if voted_user is None:
+            voting_results = VotingResults.objects.filter(
+                voting_user_id=get_user(slack_id=voting_user_id),
+                created__range=(current_month[0], current_month[1]),
+            )
+            logging.info('User found successfully.')
+        else:
+            voting_results = VotingResults.objects.filter(
+                voting_user_id=get_user(slack_id=voting_user_id),
+                created__range=(current_month[0], current_month[1]),
+                voted_user=get_user(slack_id=voted_user)
+            )
+            logging.info('User found successfully.')
+    except Exception as e:
+        logging.error(f'{e}')
+        logger.info('=' * 30)
+
     text = ''
     for vote in voting_results:
         text += (
@@ -247,12 +300,17 @@ def create_text(voting_user_id: str) -> str:
             f"W kategorii Act to deliver przyznano {vote.points_act_to_deliver} punktów.\n"
             f"W kategorii Disrupt to grow przyznano {vote.points_disrupt_to_grow} punktów.\n\n"
         )
-
+    logging.info('Text has been created successfully.')
+    logging.info('=' * 30)
     return text
 
 
 def get_name(voting_user_id):
+    logging.info('=' * 30)
+    logging.info('get_name')
     name = f"*Cześć {get_user(voting_user_id).name.split('.')[0].capitalize()}.*\n"
+    logging.info('Success.')
+    logging.info('=' * 30)
     return name
 
 """
